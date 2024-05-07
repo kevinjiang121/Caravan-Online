@@ -6,8 +6,20 @@
 
 <h2>@Model.Message</h2>
 <form method="post">
-    @foreach (var card in Model.PlayerCards)
+    @if (HttpContext.Session.GetString("CurrentPlayer") == "Player 1" && Model.Player1Cards != null)
     {
-        <button name="selectedCard" value="@card">@card</button>
+        <p>Player 1: Select a card</p>
+        foreach (var card in Model.Player1Cards)
+        {
+            <button type="submit" name="selectedCard" value="@card">@card</button>
+        }
+    }
+    else if (HttpContext.Session.GetString("CurrentPlayer") == "Player 2" && Model.Player2Cards != null)
+    {
+        <p>Player 2: Select a card</p>
+        foreach (var card in Model.Player2Cards)
+        {
+            <button type="submit" name="selectedCard" value="@card">@card</button>
+        }
     }
 </form>
