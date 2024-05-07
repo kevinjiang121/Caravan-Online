@@ -1,0 +1,13 @@
+﻿@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Card Game";
+}
+
+<h2>@Model.Message</h2>
+<form method="post">
+    @foreach (var card in Model.PlayerCards)
+    {
+        <button name="selectedCard" value="@card">@card</button>
+    }
+</form>
