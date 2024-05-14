@@ -1,138 +1,86 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using System;
+using CaravanOnline.Services;
 using System.Collections.Generic;
 using System.Linq;
 
-public class IndexModel : PageModel
+namespace CaravanOnline.Pages
 {
-    public List<string> Player1Cards { get; set; } = new List<string>();
-    public List<string> Player2Cards { get; set; } = new List<string>();
-    public Dictionary<int, List<string>> Lanes { get; set; } = new Dictionary<int, List<string>>()
+    public class IndexModel : PageModel
     {
-        {1, new List<string>()}, 
-        {2, new List<string>()},
-        {3, new List<string>()}
-    };
-    public string Message { get; set; } = "Player 1, select a card for Lane 1:";
-    public int CurrentLane { get; set; } = 1;
+        private readonly LaneManager _laneManager;
 
-    public void OnGet()
-    {
-        if (!HttpContext.Session.Keys.Contains("Initialized"))
+        public List<string> Player1Cards { get; set; } = new List<string>();
+        public List<string> Player2Cards { get; set; } = new List<string>();
+        public string Message { get; set; } = "Welcome to the game!";
+        public int CurrentLane { get; set; } = 1;
+
+        public Dictionary<int, List<string>> Lanes => _laneManager.Lanes;
+
+        public IndexModel(LaneManager laneManager)
         {
-            Player1Cards = GetRandomCards();
-            Player2Cards = GetRandomCards();
-            SaveGameState();
-            HttpContext.Session.SetString("Initialized", "true");
-            HttpContext.Session.SetString("CurrentPlayer", "Player 1");
+            _laneManager = laneManager;
         }
-        else
-        {
-            LoadGameState();
-        }
-    }
 
-    public void OnPost(string selectedCard)
-    {
-        LoadGameState();
-
-        var currentPlayer = HttpContext.Session.GetString("CurrentPlayer");
-        if (currentPlayer == "Player 1")
+        public void OnGet()
         {
-            Lanes[CurrentLane].Add(selectedCard);
-            Player1Cards.Remove(selectedCard); 
-            HttpContext.Session.SetString("CurrentPlayer", "Player 2");
-            Message = $"Player 2, select a card for Lane {CurrentLane}:";
-        }
-        else
-        {
-            Lanes[CurrentLane].Add(selectedCard); 
-            Player2Cards.Remove(selectedCard);    
-
-            if (CurrentLane < 3)
+            if (HttpContext.Session.GetString("Initialized") != "true")
             {
-                CurrentLane++;
+                Player1Cards = CardManager.GetRandomCards(); 
+                Player2Cards = CardManager.GetRandomCards(); 
+                HttpContext.Session.SetString("Player1Cards", string.Join(",", Player1Cards));
+                HttpContext.Session.SetString("Player2Cards", string.Join(",", Player2Cards));
                 HttpContext.Session.SetString("CurrentPlayer", "Player 1");
-                Message = $"Player 1, select a card for Lane {CurrentLane}:";
+                HttpContext.Session.SetInt32("CurrentLane", CurrentLane);
+                HttpContext.Session.SetString("Initialized", "true");
             }
             else
             {
-                EvaluateGame();
-                HttpContext.Session.Clear(); // End of game, clear session
-                Message = "Game over. Refresh to start a new game.";
-                return;
+                // Retrieve cards from session
+                Player1Cards = HttpContext.Session.GetString("Player1Cards")?.Split(',').ToList() ?? new List<string>();
+                Player2Cards = HttpContext.Session.GetString("Player2Cards")?.Split(',').ToList() ?? new List<string>();
+                CurrentLane = HttpContext.Session.GetInt32("CurrentLane").GetValueOrDefault(1);
+                Message = HttpContext.Session.GetString("Message") ?? "Welcome to the game!";
             }
         }
 
-        SaveGameState();
-    }
-
-    private string CompareCards(string card1, string card2)
-    {
-        var cardValues = new Dictionary<string, int>
+        public IActionResult OnPost(string selectedCard)
         {
-            ["A"] = 1, ["K"] = 13, ["Q"] = 12, ["J"] = 11, ["10"] = 10,
-            ["9"] = 9, ["8"] = 8, ["7"] = 7, ["6"] = 6, ["5"] = 5, ["4"] = 4, ["3"] = 3, ["2"] = 2
-        };
+            string currentPlayer = HttpContext.Session.GetString("CurrentPlayer");
 
-        if (string.IsNullOrEmpty(card1) || string.IsNullOrEmpty(card2) ||
-            !cardValues.ContainsKey(card1) || !cardValues.ContainsKey(card2))
-        {
-            return "Error: Invalid card(s) provided.";
-        }
+            _laneManager.AddCardToLane(CurrentLane, selectedCard);
 
-        return cardValues[card1] > cardValues[card2] ? "Player 1" : "Player 2";
-    }
-
-    private void EvaluateGame()
-    {
-        int scorePlayer1 = 0, scorePlayer2 = 0;
-        foreach (var lane in Lanes)
-        {
-            if (lane.Value.Count < 2) continue; 
-
-            var winner = CompareCards(lane.Value[0], lane.Value[1]);
-            if (winner == "Player 1") scorePlayer1++;
-            else if (winner == "Player 2") scorePlayer2++;
-            else if (winner.Contains("Error")) 
+            if (_laneManager.Lanes[CurrentLane].Count == 2)
             {
-                Message = winner; 
-                return;
+                var result = _laneManager.EvaluateGame();
+                ViewData["Result"] = result;
+                CurrentLane++;
+                Message = result;
             }
-        }
+            else
+            {
+                Message = "Waiting for the next player to play.";
+            }
 
-        if (scorePlayer1 >= 2) Message = "Player 1 wins the game!";
-        else if (scorePlayer2 >= 2) Message = "Player 2 wins the game!";
-        else Message = "It's a tie!";
-    }
+            if (currentPlayer == "Player 1")
+            {
+                Player1Cards = HttpContext.Session.GetString("Player1Cards")?.Split(',').ToList() ?? new List<string>();
+                Player1Cards.Remove(selectedCard);
+                HttpContext.Session.SetString("Player1Cards", string.Join(",", Player1Cards));
+                HttpContext.Session.SetString("CurrentPlayer", "Player 2");
+            }
+            else
+            {
+                Player2Cards = HttpContext.Session.GetString("Player2Cards")?.Split(',').ToList() ?? new List<string>();
+                Player2Cards.Remove(selectedCard);
+                HttpContext.Session.SetString("Player2Cards", string.Join(",", Player2Cards));
+                HttpContext.Session.SetString("CurrentPlayer", "Player 1");
+            }
 
-    private List<string> GetRandomCards()
-    {
-        var cards = new List<string> { "A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K" };
-        var random = new Random();
-        return cards.OrderBy(x => random.Next()).Take(5).ToList();
-    }
+            HttpContext.Session.SetInt32("CurrentLane", CurrentLane);
+            HttpContext.Session.SetString("Message", Message);
 
-    private void SaveGameState()
-    {
-        HttpContext.Session.SetString("Player1Cards", string.Join(",", Player1Cards));
-        HttpContext.Session.SetString("Player2Cards", string.Join(",", Player2Cards));
-        HttpContext.Session.SetInt32("CurrentLane", CurrentLane);
-        foreach (var lane in Lanes.Keys)
-        {
-            HttpContext.Session.SetString($"Lane{lane}", string.Join(",", Lanes[lane]));
-        }
-    }
-
-    private void LoadGameState()
-    {
-        Player1Cards = HttpContext.Session.GetString("Player1Cards").Split(',').ToList();
-        Player2Cards = HttpContext.Session.GetString("Player2Cards").Split(',').ToList();
-        CurrentLane = HttpContext.Session.GetInt32("CurrentLane") ?? 1;
-        foreach (var lane in Lanes.Keys)
-        {
-            Lanes[lane] = HttpContext.Session.GetString($"Lane{lane}")?.Split(',').ToList() ?? new List<string>();
+            return RedirectToPage();
         }
     }
 }
