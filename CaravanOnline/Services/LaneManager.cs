@@ -4,24 +4,25 @@ namespace CaravanOnline.Services
 {
     public class LaneManager
     {
-        public Dictionary<int, List<string>> Lanes { get; private set; }
+        public List<List<string>> Lanes { get; set; }
 
         public LaneManager()
         {
-            Lanes = new Dictionary<int, List<string>>
+            Lanes = new List<List<string>>
             {
-                {1, new List<string>()},
-                {2, new List<string>()},
-                {3, new List<string>()}
+                new List<string>(), 
+                new List<string>(), 
+                new List<string>()  
             };
         }
 
         public void AddCardToLane(int lane, string card)
         {
-            if (Lanes.ContainsKey(lane))
+            if (lane >= 1 && lane <= Lanes.Count)
             {
-                Lanes[lane].Add(card);
-            }
+                Console.WriteLine(card);
+                Lanes[lane - 1].Add(card);
+            }    
         }
 
         public string EvaluateGame()
@@ -29,8 +30,8 @@ namespace CaravanOnline.Services
             int scorePlayer1 = 0, scorePlayer2 = 0;
             foreach (var lane in Lanes)
             {
-                if (lane.Value.Count < 2) continue; // Ensure both players have played in this lane
-                var winner = CardManager.CompareCards(lane.Value[0], lane.Value[1]);
+                if (lane.Count < 2) continue; 
+                var winner = CardManager.CompareCards(lane[0], lane[1]);
                 if (winner == "Player 1") scorePlayer1++;
                 else if (winner == "Player 2") scorePlayer2++;
             }

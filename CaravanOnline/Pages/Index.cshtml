@@ -35,9 +35,9 @@
         {
             <div>
                 <h4>Lane @lane</h4>
-                @if (Model.Lanes.ContainsKey(lane))
+                @if (Model.Lanes.Count >= lane && Model.Lanes[lane - 1] != null)
                 {
-                    @foreach (var card in Model.Lanes[lane])
+                    @foreach (var card in Model.Lanes[lane - 1])
                     {
                         <p>@card</p>
                     }
