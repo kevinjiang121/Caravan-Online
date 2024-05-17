@@ -20,7 +20,6 @@ namespace CaravanOnline.Services
         {
             if (lane >= 1 && lane <= Lanes.Count)
             {
-                Console.WriteLine(card);
                 Lanes[lane - 1].Add(card);
             }    
         }
@@ -36,8 +35,8 @@ namespace CaravanOnline.Services
                 else if (winner == "Player 2") scorePlayer2++;
             }
 
-            if (scorePlayer1 >= 2) return "Player 1 wins the game!";
-            else if (scorePlayer2 >= 2) return "Player 2 wins the game!";
+            if (scorePlayer1 > scorePlayer2) return "Player 1 wins the game!";
+            else if (scorePlayer2 > scorePlayer1) return "Player 2 wins the game!";
             else return "It's a tie!";
         }
     }

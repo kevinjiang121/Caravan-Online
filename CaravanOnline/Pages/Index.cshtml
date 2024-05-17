@@ -3,9 +3,6 @@
 
 <h2>@Model.Message</h2>
 
-<p>Debug: Player 1 Cards Count = @Model.Player1Cards.Count</p>
-<p>Debug: Player 2 Cards Count = @Model.Player2Cards.Count</p>
-
 <form method="post">
     <p>Current Player: @HttpContext.Session.GetString("CurrentPlayer")</p>
     @if (HttpContext.Session.GetString("CurrentPlayer") == "Player 1" && Model.Player1Cards != null && Model.Player1Cards.Count > 0)
@@ -13,7 +10,6 @@
         <p>Player 1: Select a card</p>
         @foreach (var card in Model.Player1Cards)
         {
-            <p>card = @card</p>
             <button type="submit" name="selectedCard" value="@card">@card</button>
         }
     }
@@ -22,7 +18,6 @@
         <p>Player 2: Select a card</p>
         @foreach (var card in Model.Player2Cards)
         {
-            <p>card = @card</p>
             <button type="submit" name="selectedCard" value="@card">@card</button>
         }
     }

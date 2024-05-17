@@ -55,7 +55,6 @@ namespace CaravanOnline.Pages
             CurrentLane = HttpContext.Session.GetInt32("CurrentLane").GetValueOrDefault(1);
             string currentPlayer = HttpContext.Session.GetString("CurrentPlayer");
 
-            // Deserialize lanes from session
             var serializedLanes = HttpContext.Session.GetString("Lanes");
             if (!string.IsNullOrEmpty(serializedLanes))
             {
@@ -64,7 +63,15 @@ namespace CaravanOnline.Pages
 
             _laneManager.AddCardToLane(CurrentLane, selectedCard);
 
-            if (_laneManager.Lanes[CurrentLane - 1].Count >= 3)
+            if (_laneManager.Lanes.All(lane => lane.Count >= 2))
+            {
+                var result = _laneManager.EvaluateGame();
+                Message = result;
+                HttpContext.Session.Clear(); 
+                return Page();
+            }
+
+            if (_laneManager.Lanes[CurrentLane - 1].Count >= 2)
             {
                 CurrentLane++;
             }
@@ -84,19 +91,8 @@ namespace CaravanOnline.Pages
                 HttpContext.Session.SetString("CurrentPlayer", "Player 1");
             }
 
-            var result = _laneManager.EvaluateGame();
-            if (!string.IsNullOrEmpty(result))
-            {
-                Message = result;
-            }
-            else
-            {
-                Message = "Waiting for the next player to play.";
-            }
-
             HttpContext.Session.SetInt32("CurrentLane", CurrentLane);
             HttpContext.Session.SetString("Message", Message);
-
             HttpContext.Session.SetString("Lanes", SerializeLanes(_laneManager.Lanes));
 
             return RedirectToPage();
@@ -114,7 +110,14 @@ namespace CaravanOnline.Pages
 
             foreach (var laneEntry in laneEntries)
             {
-                lanes.Add(laneEntry.Split(',').ToList());
+                if (!string.IsNullOrWhiteSpace(laneEntry))
+                {
+                    lanes.Add(laneEntry.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).ToList());
+                }
+                else
+                {
+                    lanes.Add(new List<string>());
+                }
             }
 
             return lanes;
