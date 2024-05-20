@@ -20,7 +20,6 @@ namespace CaravanOnline.Services
                 ["A"] = 1, ["K"] = 13, ["Q"] = 12, ["J"] = 11, ["10"] = 10,
                 ["9"] = 9, ["8"] = 8, ["7"] = 7, ["6"] = 6, ["5"] = 5, ["4"] = 4, ["3"] = 3, ["2"] = 2
             };
-            Console.WriteLine(card1);
 
             if (string.IsNullOrEmpty(card1) || string.IsNullOrEmpty(card2) ||
                 !cardValues.ContainsKey(card1) || !cardValues.ContainsKey(card2))

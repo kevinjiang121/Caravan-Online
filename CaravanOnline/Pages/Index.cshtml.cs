@@ -63,34 +63,47 @@ namespace CaravanOnline.Pages
 
             _laneManager.AddCardToLane(CurrentLane, selectedCard);
 
-            if (_laneManager.Lanes.All(lane => lane.Count >= 2))
+            // Check if all lanes have 1 or more cards
+            if (_laneManager.Lanes.All(lane => lane.Count >= 1))
             {
                 var result = _laneManager.EvaluateGame();
                 Message = result;
-                HttpContext.Session.Clear(); 
+                HttpContext.Session.Clear();
                 return Page();
             }
 
-            if (_laneManager.Lanes[CurrentLane - 1].Count >= 2)
+            // Switch to the next player's lane
+            if (currentPlayer == "Player 1")
             {
-                CurrentLane++;
+                if (CurrentLane == 1) CurrentLane = 4;
+                else if (CurrentLane == 2) CurrentLane = 5;
+                else if (CurrentLane == 3) CurrentLane = 6;
+            }
+            else
+            {
+                if (CurrentLane == 4) CurrentLane = 2;
+                else if (CurrentLane == 5) CurrentLane = 3;
+                else if (CurrentLane == 6) CurrentLane = 1;
             }
 
+            // Update current player
+            HttpContext.Session.SetString("CurrentPlayer", currentPlayer == "Player 1" ? "Player 2" : "Player 1");
+
+            // Remove selected card from current player’s hand
             if (currentPlayer == "Player 1")
             {
                 Player1Cards = HttpContext.Session.GetString("Player1Cards")?.Split(',').ToList() ?? new List<string>();
                 Player1Cards.Remove(selectedCard);
                 HttpContext.Session.SetString("Player1Cards", string.Join(",", Player1Cards));
-                HttpContext.Session.SetString("CurrentPlayer", "Player 2");
             }
             else
             {
                 Player2Cards = HttpContext.Session.GetString("Player2Cards")?.Split(',').ToList() ?? new List<string>();
                 Player2Cards.Remove(selectedCard);
                 HttpContext.Session.SetString("Player2Cards", string.Join(",", Player2Cards));
-                HttpContext.Session.SetString("CurrentPlayer", "Player 1");
             }
 
+            // Update session state
             HttpContext.Session.SetInt32("CurrentLane", CurrentLane);
             HttpContext.Session.SetString("Message", Message);
             HttpContext.Session.SetString("Lanes", SerializeLanes(_laneManager.Lanes));
@@ -100,14 +113,18 @@ namespace CaravanOnline.Pages
 
         private string SerializeLanes(List<List<string>> lanes)
         {
-            return string.Join(";", lanes.Select(l => string.Join(",", l)));
+            var serializedLanes = new List<string>();
+            foreach (var lane in lanes)
+            {
+                serializedLanes.Add(string.Join(",", lane));
+            }
+            return string.Join(";", serializedLanes);
         }
 
         private List<List<string>> DeserializeLanes(string serializedLanes)
         {
             var lanes = new List<List<string>>();
             var laneEntries = serializedLanes.Split(';');
-
             foreach (var laneEntry in laneEntries)
             {
                 if (!string.IsNullOrWhiteSpace(laneEntry))
@@ -119,7 +136,6 @@ namespace CaravanOnline.Pages
                     lanes.Add(new List<string>());
                 }
             }
-
             return lanes;
         }
     }

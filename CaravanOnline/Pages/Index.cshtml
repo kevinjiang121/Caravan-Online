@@ -25,23 +25,44 @@
 
 <div>
     <h3>Lane Displays</h3>
-    <div style="display: flex; justify-content: space-around;">
-        @for (int lane = 1; lane <= 3; lane++)
-        {
-            <div>
-                <h4>Lane @lane</h4>
-                @if (Model.Lanes.Count >= lane && Model.Lanes[lane - 1] != null)
-                {
-                    @foreach (var card in Model.Lanes[lane - 1])
+    <div style="display: flex; flex-direction: column;">
+        <div style="display: flex; justify-content: space-around;">
+            @for (int lane = 1; lane <= 3; lane++)
+            {
+                <div>
+                    <h4>Lane @lane</h4>
+                    @if (Model.Lanes.Count >= lane && Model.Lanes[lane - 1] != null)
                     {
-                        <p>@card</p>
+                        @foreach (var card in Model.Lanes[lane - 1])
+                        {
+                            <p>@card</p>
+                        }
                     }
-                }
-                else
-                {
-                    <p>Empty</p>
-                }
-            </div>
-        }
+                    else
+                    {
+                        <p>Empty</p>
+                    }
+                </div>
+            }
+        </div>
+        <div style="display: flex; justify-content: space-around;">
+            @for (int lane = 4; lane <= 6; lane++)
+            {
+                <div>
+                    <h4>Lane @lane</h4>
+                    @if (Model.Lanes.Count >= lane && Model.Lanes[lane - 1] != null)
+                    {
+                        @foreach (var card in Model.Lanes[lane - 1])
+                        {
+                            <p>@card</p>
+                        }
+                    }
+                    else
+                    {
+                        <p>Empty</p>
+                    }
+                </div>
+            }
+        </div>
     </div>
 </div>
