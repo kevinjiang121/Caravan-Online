@@ -31,23 +31,23 @@ namespace CaravanOnline.Pages
             {
                 Player1Cards = _cardManager.GetRandomCards();
                 Player2Cards = _cardManager.GetRandomCards();
-                HttpContext.Session.SetString("Player1Cards", SerializeCards(Player1Cards));
-                HttpContext.Session.SetString("Player2Cards", SerializeCards(Player2Cards));
+                HttpContext.Session.SetString("Player1Cards", SerializationHelper.SerializePlayerCards(Player1Cards));
+                HttpContext.Session.SetString("Player2Cards", SerializationHelper.SerializePlayerCards(Player2Cards));
                 HttpContext.Session.SetString("CurrentPlayer", "Player 1");
                 HttpContext.Session.SetInt32("CurrentLane", CurrentLane);
-                HttpContext.Session.SetString("Lanes", SerializeLanes(_laneManager.Lanes));
+                HttpContext.Session.SetString("Lanes", SerializationHelper.SerializeLanes(_laneManager.Lanes));
                 HttpContext.Session.SetString("Initialized", "true");
             }
             else
             {
-                Player1Cards = DeserializeCards(HttpContext.Session.GetString("Player1Cards"));
-                Player2Cards = DeserializeCards(HttpContext.Session.GetString("Player2Cards"));
+                Player1Cards = SerializationHelper.DeserializePlayerCards(HttpContext.Session.GetString("Player1Cards"));
+                Player2Cards = SerializationHelper.DeserializePlayerCards(HttpContext.Session.GetString("Player2Cards"));
                 CurrentLane = HttpContext.Session.GetInt32("CurrentLane").GetValueOrDefault(1);
                 Message = HttpContext.Session.GetString("Message") ?? "Welcome to the game!";
                 var serializedLanes = HttpContext.Session.GetString("Lanes");
                 if (!string.IsNullOrEmpty(serializedLanes))
                 {
-                    _laneManager.Lanes = DeserializeLanes(serializedLanes);
+                    _laneManager.Lanes = SerializationHelper.DeserializeLanes(serializedLanes);
                 }
             }
         }
@@ -60,7 +60,7 @@ namespace CaravanOnline.Pages
             var serializedLanes = HttpContext.Session.GetString("Lanes");
             if (!string.IsNullOrEmpty(serializedLanes))
             {
-                _laneManager.Lanes = DeserializeLanes(serializedLanes);
+                _laneManager.Lanes = SerializationHelper.DeserializeLanes(serializedLanes);
             }
 
             var selectedCardParts = selectedCard.Split(' ');
@@ -75,22 +75,22 @@ namespace CaravanOnline.Pages
             Card card = null;
             if (currentPlayer == "Player 1")
             {
-                Player1Cards = DeserializeCards(HttpContext.Session.GetString("Player1Cards"));
+                Player1Cards = SerializationHelper.DeserializePlayerCards(HttpContext.Session.GetString("Player1Cards"));
                 card = Player1Cards.FirstOrDefault(c => c.Face == selectedCardFace && c.Suit == selectedCardSuit);
                 if (card != null)
                 {
                     Player1Cards.Remove(card);
-                    HttpContext.Session.SetString("Player1Cards", SerializeCards(Player1Cards));
+                    HttpContext.Session.SetString("Player1Cards", SerializationHelper.SerializePlayerCards(Player1Cards));
                 }
             }
             else
             {
-                Player2Cards = DeserializeCards(HttpContext.Session.GetString("Player2Cards"));
+                Player2Cards = SerializationHelper.DeserializePlayerCards(HttpContext.Session.GetString("Player2Cards"));
                 card = Player2Cards.FirstOrDefault(c => c.Face == selectedCardFace && c.Suit == selectedCardSuit);
                 if (card != null)
                 {
                     Player2Cards.Remove(card);
-                    HttpContext.Session.SetString("Player2Cards", SerializeCards(Player2Cards));
+                    HttpContext.Session.SetString("Player2Cards", SerializationHelper.SerializePlayerCards(Player2Cards));
                 }
             }
 
@@ -125,58 +125,10 @@ namespace CaravanOnline.Pages
 
             HttpContext.Session.SetInt32("CurrentLane", CurrentLane);
             HttpContext.Session.SetString("Message", Message);
-            HttpContext.Session.SetString("Lanes", SerializeLanes(_laneManager.Lanes));
+            HttpContext.Session.SetString("Lanes", SerializationHelper.SerializeLanes(_laneManager.Lanes));
             HttpContext.Session.SetString("CurrentPlayer", currentPlayer == "Player 1" ? "Player 2" : "Player 1");
 
             return RedirectToPage();
-        }
-
-        private string SerializeCards(List<Card> cards)
-        {
-            return string.Join(";", cards.Select(c => $"{c.Face},{c.Suit},{c.Number},{c.Direction},{c.Effect ?? string.Empty}"));
-        }
-
-        private List<Card> DeserializeCards(string serializedCards)
-        {
-            if (string.IsNullOrEmpty(serializedCards)) return new List<Card>();
-
-            return serializedCards.Split(';').Select(c =>
-            {
-                var parts = c.Split(',');
-                return new Card(parts[0], parts[1])
-                {
-                    Number = int.Parse(parts[2]),
-                    Direction = parts[3],
-                    Effect = parts.Length > 4 ? parts[4] : null
-                };
-            }).ToList();
-        }
-
-        private string SerializeLanes(List<List<Card>> lanes)
-        {
-            return string.Join(";", lanes.Select(lane => string.Join(",", lane.Select(c => $"{c.Face}-{c.Suit}"))));
-        }
-
-        private List<List<Card>> DeserializeLanes(string serializedLanes)
-        {
-            var lanes = new List<List<Card>>();
-            var laneEntries = serializedLanes.Split(';');
-            foreach (var laneEntry in laneEntries)
-            {
-                if (!string.IsNullOrWhiteSpace(laneEntry))
-                {
-                    lanes.Add(laneEntry.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).Select(c =>
-                    {
-                        var parts = c.Split('-');
-                        return new Card(parts[0], parts[1]);
-                    }).ToList());
-                }
-                else
-                {
-                    lanes.Add(new List<Card>());
-                }
-            }
-            return lanes;
         }
     }
 }

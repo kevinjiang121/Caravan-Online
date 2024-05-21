@@ -14,7 +14,7 @@ namespace CaravanOnline.Services
         {
             var random = new Random();
             var deck = Faces.SelectMany(face => Suits, (face, suit) => new Card(face, suit)).ToList();
-            return deck.OrderBy(x => random.Next()).Take(5).ToList();
+            return deck.OrderBy(x => random.Next()).Take(8).ToList(); // Change 5 to 8
         }
 
         public static string CompareCards(Card card1, Card card2)
