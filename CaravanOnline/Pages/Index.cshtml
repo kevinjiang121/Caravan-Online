@@ -10,7 +10,7 @@
         <p>Player 1: Select a card</p>
         @foreach (var card in Model.Player1Cards)
         {
-            <button type="submit" name="selectedCard" value="@card">@card</button>
+            <button type="submit" name="selectedCard" value="@card.Face @card.Suit">@card.Face @card.Suit</button>
         }
     }
     else if (HttpContext.Session.GetString("CurrentPlayer") == "Player 2" && Model.Player2Cards != null && Model.Player2Cards.Count > 0)
@@ -18,7 +18,7 @@
         <p>Player 2: Select a card</p>
         @foreach (var card in Model.Player2Cards)
         {
-            <button type="submit" name="selectedCard" value="@card">@card</button>
+            <button type="submit" name="selectedCard" value="@card.Face @card.Suit">@card.Face @card.Suit</button>
         }
     }
 </form>
@@ -35,7 +35,7 @@
                     {
                         @foreach (var card in Model.Lanes[lane - 1])
                         {
-                            <p>@card</p>
+                            <p>@card.Face @card.Suit</p>
                         }
                     }
                     else
@@ -54,7 +54,7 @@
                     {
                         @foreach (var card in Model.Lanes[lane - 1])
                         {
-                            <p>@card</p>
+                            <p>@card.Face @card.Suit</p>
                         }
                     }
                     else
