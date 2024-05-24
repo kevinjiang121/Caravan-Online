@@ -8,7 +8,6 @@ CaravanOnline is a web application project aimed at creating an online version o
 - [Running the Application](#running-the-application)
 - [Gameplay](#gameplay)
 - [Project Structure](#project-structure)
-- [Contributing](#contributing)
 
 ## Features
 - Two-player online card game.
@@ -79,11 +78,3 @@ CaravanOnline/
 ├── Program.cs 
 └── CaravanOnline.csproj 
 ```
-
-## Contributing
-Contributions are welcome! To contribute to this project, follow these steps:
-1. Fork the repository.
-2. Create a new branch for your feature or bugfix.
-3. Commit your changes and push the branch to your fork.
-4. Submit a pull request with a detailed description of your changes.
-
