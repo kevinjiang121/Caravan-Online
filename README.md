@@ -56,6 +56,7 @@ dotnet run
 
 ## Project Structure
 The project follows a standard ASP.NET Core structure:
+```bash
 CaravanOnline/
 │
 ├── Pages/
@@ -78,7 +79,7 @@ CaravanOnline/
 ├── Program.cs # Program entry point
 ├── Startup.cs # Configuration and middleware setup
 └── CaravanOnline.csproj # Project file
-
+```
 
 ## Contributing
 Contributions are welcome! To contribute to this project, follow these steps:
