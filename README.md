@@ -24,28 +24,35 @@ To set up the project locally, follow these steps:
 - [Visual Studio 2019 or later](https://visualstudio.microsoft.com/) with ASP.NET and web development workload installed.
 
 ### Clone the Repository
+```bash
 Clone the project repository to your local machine using:
 git clone https://github.com/yourusername/CaravanOnline.git
 cd CaravanOnline
+```
 
 ### Restore Dependencies
+```bash
 Restore the project dependencies using the .NET CLI:
 dotnet restore
+```
 
 ## Running the Application
 To run the application locally, use the following steps:
 
 ### Using Visual Studio
+```bash
 1. Open the `CaravanOnline` solution in Visual Studio.
 2. Set `CaravanOnline` as the startup project.
 3. Press `F5` to run the application.
+```
 
 ### Using the .NET CLI
+```bash
 1. Navigate to the project directory.
 2. Run the application using the following command:
 dotnet run
-
 3. Open a web browser and navigate to `https://localhost:5001`.
+```
 
 ## Gameplay
 1. Each player is dealt a hand of cards.
