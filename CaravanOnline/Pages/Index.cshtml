@@ -5,20 +5,46 @@
 
 <form method="post">
     <p>Current Player: @HttpContext.Session.GetString("CurrentPlayer")</p>
-    @if (HttpContext.Session.GetString("CurrentPlayer") == "Player 1" && Model.Player1Cards != null && Model.Player1Cards.Count > 0)
+    @if (Model.Phase == 1)
     {
-        <p>Player 1: Select a card</p>
-        @foreach (var card in Model.Player1Cards)
+        @if (HttpContext.Session.GetString("CurrentPlayer") == "Player 1" && Model.Player1Cards != null && Model.Player1Cards.Count > 0)
         {
-            <button type="submit" name="selectedCard" value="@card.Face @card.Suit">@card.Face @card.Suit</button>
+            <p>Player 1: Select a card</p>
+            @foreach (var card in Model.Player1Cards)
+            {
+                <button type="submit" name="selectedCard" value="@card.Face @card.Suit">@card.Face @card.Suit</button>
+            }
+        }
+        else if (HttpContext.Session.GetString("CurrentPlayer") == "Player 2" && Model.Player2Cards != null && Model.Player2Cards.Count > 0)
+        {
+            <p>Player 2: Select a card</p>
+            @foreach (var card in Model.Player2Cards)
+            {
+                <button type="submit" name="selectedCard" value="@card.Face @card.Suit">@card.Face @card.Suit</button>
+            }
         }
     }
-    else if (HttpContext.Session.GetString("CurrentPlayer") == "Player 2" && Model.Player2Cards != null && Model.Player2Cards.Count > 0)
+    else if (Model.Phase == 2)
     {
-        <p>Player 2: Select a card</p>
-        @foreach (var card in Model.Player2Cards)
+        <p>Select a card:</p>
+        @if (HttpContext.Session.GetString("CurrentPlayer") == "Player 1")
         {
-            <button type="submit" name="selectedCard" value="@card.Face @card.Suit">@card.Face @card.Suit</button>
+            @foreach (var card in Model.Player1Cards)
+            {
+                <button type="submit" name="selectedCard" value="@card.Face @card.Suit">@card.Face @card.Suit</button>
+            }
+        }
+        else if (HttpContext.Session.GetString("CurrentPlayer") == "Player 2")
+        {
+            @foreach (var card in Model.Player2Cards)
+            {
+                <button type="submit" name="selectedCard" value="@card.Face @card.Suit">@card.Face @card.Suit</button>
+            }
+        }
+        <p>Select a lane:</p>
+        @for (int lane = 1; lane <= 6; lane++)
+        {
+            <button type="submit" name="selectedLane" value="@lane">Lane @lane</button>
         }
     }
 </form>

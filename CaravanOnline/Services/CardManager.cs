@@ -12,9 +12,14 @@ namespace CaravanOnline.Services
 
         public List<Card> GetRandomCards()
         {
+            return GetRandomCards(8);
+        }
+
+        public List<Card> GetRandomCards(int count)
+        {
             var random = new Random();
             var deck = Faces.SelectMany(face => Suits, (face, suit) => new Card(face, suit)).ToList();
-            return deck.OrderBy(x => random.Next()).Take(8).ToList(); // Change 5 to 8
+            return deck.OrderBy(x => random.Next()).Take(count).ToList();
         }
 
         public static string CompareCards(Card card1, Card card2)

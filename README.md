@@ -9,7 +9,6 @@ CaravanOnline is a web application project aimed at creating an online version o
 - [Gameplay](#gameplay)
 - [Project Structure](#project-structure)
 - [Contributing](#contributing)
-- [License](#license)
 
 ## Features
 - Two-player online card game.
@@ -22,7 +21,7 @@ CaravanOnline is a web application project aimed at creating an online version o
 To set up the project locally, follow these steps:
 
 ### Prerequisites
-- [.NET 5 SDK](https://dotnet.microsoft.com/download/dotnet/5.0)
+- [.NET 6 SDK](https://dotnet.microsoft.com/en-us/download/dotnet/6.0)
 - [Visual Studio 2019 or later](https://visualstudio.microsoft.com/) with ASP.NET and web development workload installed.
 
 ### Clone the Repository
