@@ -60,12 +60,12 @@ The project follows a standard ASP.NET Core structure:
 CaravanOnline/
 │
 ├── Pages/
-│ ├── Index.cshtml # Main game page
-│ ├── Index.cshtml.cs # Code-behind for the main game page
+│ ├── Index.cshtml
+│ ├── Index.cshtml.cs 
 │ └── ...
 │
 ├── Models/
-│ ├── Card.cs # Card model
+│ ├── Card.cs # Card Object
 │ └── ...
 │
 ├── Services/
@@ -73,12 +73,11 @@ CaravanOnline/
 │ ├── LaneManager.cs # Logic for managing lanes
 │ └── ...
 │
-├── wwwroot/ # Static files (CSS, JS, images)
+├── wwwroot/ 
 │
-├── appsettings.json # Application configuration
-├── Program.cs # Program entry point
-├── Startup.cs # Configuration and middleware setup
-└── CaravanOnline.csproj # Project file
+├── appsettings.json 
+├── Program.cs 
+└── CaravanOnline.csproj 
 ```
 
 ## Contributing
