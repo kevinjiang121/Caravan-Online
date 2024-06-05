@@ -5,46 +5,20 @@
 
 <form method="post">
     <p>Current Player: @HttpContext.Session.GetString("CurrentPlayer")</p>
-    @if (Model.Phase == 1)
+    @if (HttpContext.Session.GetString("CurrentPlayer") == "Player 1" && Model.Player1Cards != null && Model.Player1Cards.Count > 0)
     {
-        @if (HttpContext.Session.GetString("CurrentPlayer") == "Player 1" && Model.Player1Cards != null && Model.Player1Cards.Count > 0)
+        <p>Player 1: Select a card</p>
+        @foreach (var card in Model.Player1Cards)
         {
-            <p>Player 1: Select a card</p>
-            @foreach (var card in Model.Player1Cards)
-            {
-                <button type="submit" name="selectedCard" value="@card.Face @card.Suit">@card.Face @card.Suit</button>
-            }
-        }
-        else if (HttpContext.Session.GetString("CurrentPlayer") == "Player 2" && Model.Player2Cards != null && Model.Player2Cards.Count > 0)
-        {
-            <p>Player 2: Select a card</p>
-            @foreach (var card in Model.Player2Cards)
-            {
-                <button type="submit" name="selectedCard" value="@card.Face @card.Suit">@card.Face @card.Suit</button>
-            }
+            <button type="submit" name="selectedCard" value="@card.Face @card.Suit">@card.Face @card.Suit</button>
         }
     }
-    else if (Model.Phase == 2)
+    else if (HttpContext.Session.GetString("CurrentPlayer") == "Player 2" && Model.Player2Cards != null && Model.Player2Cards.Count > 0)
     {
-        <p>Select a card:</p>
-        @if (HttpContext.Session.GetString("CurrentPlayer") == "Player 1")
+        <p>Player 2: Select a card</p>
+        @foreach (var card in Model.Player2Cards)
         {
-            @foreach (var card in Model.Player1Cards)
-            {
-                <button type="submit" name="selectedCard" value="@card.Face @card.Suit">@card.Face @card.Suit</button>
-            }
-        }
-        else if (HttpContext.Session.GetString("CurrentPlayer") == "Player 2")
-        {
-            @foreach (var card in Model.Player2Cards)
-            {
-                <button type="submit" name="selectedCard" value="@card.Face @card.Suit">@card.Face @card.Suit</button>
-            }
-        }
-        <p>Select a lane:</p>
-        @for (int lane = 1; lane <= 6; lane++)
-        {
-            <button type="submit" name="selectedLane" value="@lane">Lane @lane</button>
+            <button type="submit" name="selectedCard" value="@card.Face @card.Suit">@card.Face @card.Suit</button>
         }
     }
 </form>
@@ -56,17 +30,39 @@
             @for (int lane = 1; lane <= 3; lane++)
             {
                 <div>
-                    <h4>Lane @lane</h4>
-                    @if (Model.Lanes.Count >= lane && Model.Lanes[lane - 1] != null)
+                    @if (Model.Phase == 2 && HttpContext.Session.GetString("CurrentPlayer") == "Player 1")
                     {
-                        @foreach (var card in Model.Lanes[lane - 1])
-                        {
-                            <p>@card.Face @card.Suit</p>
-                        }
+                        <form method="post">
+                            <button type="submit" name="selectedLane" value="@lane">
+                                <h4>Lane @lane</h4>
+                                @if (Model.Lanes.Count >= lane && Model.Lanes[lane - 1] != null)
+                                {
+                                    @foreach (var card in Model.Lanes[lane - 1])
+                                    {
+                                        <p>@card.Face @card.Suit</p>
+                                    }
+                                }
+                                else
+                                {
+                                    <p>Empty</p>
+                                }
+                            </button>
+                        </form>
                     }
                     else
                     {
-                        <p>Empty</p>
+                        <h4>Lane @lane</h4>
+                        @if (Model.Lanes.Count >= lane && Model.Lanes[lane - 1] != null)
+                        {
+                            @foreach (var card in Model.Lanes[lane - 1])
+                            {
+                                <p>@card.Face @card.Suit</p>
+                            }
+                        }
+                        else
+                        {
+                            <p>Empty</p>
+                        }
                     }
                 </div>
             }
@@ -75,17 +71,39 @@
             @for (int lane = 4; lane <= 6; lane++)
             {
                 <div>
-                    <h4>Lane @lane</h4>
-                    @if (Model.Lanes.Count >= lane && Model.Lanes[lane - 1] != null)
+                    @if (Model.Phase == 2 && HttpContext.Session.GetString("CurrentPlayer") == "Player 2")
                     {
-                        @foreach (var card in Model.Lanes[lane - 1])
-                        {
-                            <p>@card.Face @card.Suit</p>
-                        }
+                        <form method="post">
+                            <button type="submit" name="selectedLane" value="@lane">
+                                <h4>Lane @lane</h4>
+                                @if (Model.Lanes.Count >= lane && Model.Lanes[lane - 1] != null)
+                                {
+                                    @foreach (var card in Model.Lanes[lane - 1])
+                                    {
+                                        <p>@card.Face @card.Suit</p>
+                                    }
+                                }
+                                else
+                                {
+                                    <p>Empty</p>
+                                }
+                            </button>
+                        </form>
                     }
                     else
                     {
-                        <p>Empty</p>
+                        <h4>Lane @lane</h4>
+                        @if (Model.Lanes.Count >= lane && Model.Lanes[lane - 1] != null)
+                        {
+                            @foreach (var card in Model.Lanes[lane - 1])
+                            {
+                                <p>@card.Face @card.Suit</p>
+                            }
+                        }
+                        else
+                        {
+                            <p>Empty</p>
+                        }
                     }
                 </div>
             }
