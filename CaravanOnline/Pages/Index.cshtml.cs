@@ -90,7 +90,8 @@ namespace CaravanOnline.Pages
                         card = Player1Cards.FirstOrDefault(c => c.Face == selectedCardFace && c.Suit == selectedCardSuit);
                         if (card != null)
                         {
-                            Player1Cards.Remove(card);
+                            Player1Cards = Player1Cards.Where(c => c.Face != selectedCardFace || c.Suit != selectedCardSuit).ToList();
+                            AddRandomCardIfNecessary(currentPlayer);
                             HttpContext.Session.SetString("Player1Cards", SerializationHelper.SerializePlayerCards(Player1Cards));
                         }
                     }
@@ -99,7 +100,8 @@ namespace CaravanOnline.Pages
                         card = Player2Cards.FirstOrDefault(c => c.Face == selectedCardFace && c.Suit == selectedCardSuit);
                         if (card != null)
                         {
-                            Player2Cards.Remove(card);
+                            Player2Cards = Player2Cards.Where(c => c.Face != selectedCardFace || c.Suit != selectedCardSuit).ToList();
+                            AddRandomCardIfNecessary(currentPlayer);
                             HttpContext.Session.SetString("Player2Cards", SerializationHelper.SerializePlayerCards(Player2Cards));
                         }
                     }
@@ -140,8 +142,6 @@ namespace CaravanOnline.Pages
                     HttpContext.Session.SetString("Lanes", SerializationHelper.SerializeLanes(_laneManager.Lanes));
                     HttpContext.Session.SetString("Message", Message);
 
-                    AddRandomCardIfNecessary(currentPlayer);
-
                     return RedirectToPage();
                 }
             }
@@ -174,6 +174,7 @@ namespace CaravanOnline.Pages
                     }
 
                     HttpContext.Session.SetString("SelectedCardPhase2", SerializationHelper.SerializePlayerCards(new List<Card> { SelectedCardPhase2 }));
+                    Message = "Please select a lane";
                 }
                 else if (!string.IsNullOrEmpty(selectedLane))
                 {
@@ -181,7 +182,7 @@ namespace CaravanOnline.Pages
                     if (string.IsNullOrEmpty(serializedSelectedCard))
                     {
                         Message = "Please select a card first.";
-                        return Page(); 
+                        return Page(); // Stay on the same page without redirecting
                     }
 
                     SelectedCardPhase2 = SerializationHelper.DeserializePlayerCards(serializedSelectedCard).FirstOrDefault();
@@ -201,19 +202,18 @@ namespace CaravanOnline.Pages
 
                     if (currentPlayer == "Player 1")
                     {
-                        Player1Cards.Remove(SelectedCardPhase2);
+                        Player1Cards = Player1Cards.Where(c => c.Face != SelectedCardPhase2.Face || c.Suit != SelectedCardPhase2.Suit).ToList();
+                        AddRandomCardIfNecessary(currentPlayer);
                         HttpContext.Session.SetString("Player1Cards", SerializationHelper.SerializePlayerCards(Player1Cards));
                     }
                     else
                     {
-                        Player2Cards.Remove(SelectedCardPhase2);
+                        Player2Cards = Player2Cards.Where(c => c.Face != SelectedCardPhase2.Face || c.Suit != SelectedCardPhase2.Suit).ToList();
+                        AddRandomCardIfNecessary(currentPlayer);
                         HttpContext.Session.SetString("Player2Cards", SerializationHelper.SerializePlayerCards(Player2Cards));
                     }
 
                     HttpContext.Session.Remove("SelectedCardPhase2");
-
-                    // Add new random card if player has less than 5 cards
-                    AddRandomCardIfNecessary(currentPlayer);
 
                     HttpContext.Session.SetString("Lanes", SerializationHelper.SerializeLanes(_laneManager.Lanes));
                     HttpContext.Session.SetString("Message", Message);
@@ -242,24 +242,18 @@ namespace CaravanOnline.Pages
         {
             if (currentPlayer == "Player 1")
             {
-                Player1Cards = SerializationHelper.DeserializePlayerCards(HttpContext.Session.GetString("Player1Cards") ?? string.Empty);
-
                 if (Player1Cards.Count < 5)
                 {
                     var newCard = _cardManager.GetRandomCard();
                     Player1Cards.Add(newCard);
-                    HttpContext.Session.SetString("Player1Cards", SerializationHelper.SerializePlayerCards(Player1Cards));
                 }
             }
             else if (currentPlayer == "Player 2")
             {
-                Player2Cards = SerializationHelper.DeserializePlayerCards(HttpContext.Session.GetString("Player2Cards") ?? string.Empty);
-
                 if (Player2Cards.Count < 5)
                 {
                     var newCard = _cardManager.GetRandomCard();
                     Player2Cards.Add(newCard);
-                    HttpContext.Session.SetString("Player2Cards", SerializationHelper.SerializePlayerCards(Player2Cards));
                 }
             }
         }
