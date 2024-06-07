@@ -92,7 +92,6 @@ namespace CaravanOnline.Pages
                         {
                             Player1Cards = Player1Cards.Where(c => c.Face != selectedCardFace || c.Suit != selectedCardSuit).ToList();
                             AddRandomCardIfNecessary(currentPlayer);
-                            HttpContext.Session.SetString("Player1Cards", SerializationHelper.SerializePlayerCards(Player1Cards));
                         }
                     }
                     else
@@ -102,7 +101,6 @@ namespace CaravanOnline.Pages
                         {
                             Player2Cards = Player2Cards.Where(c => c.Face != selectedCardFace || c.Suit != selectedCardSuit).ToList();
                             AddRandomCardIfNecessary(currentPlayer);
-                            HttpContext.Session.SetString("Player2Cards", SerializationHelper.SerializePlayerCards(Player2Cards));
                         }
                     }
 
@@ -141,6 +139,9 @@ namespace CaravanOnline.Pages
 
                     HttpContext.Session.SetString("Lanes", SerializationHelper.SerializeLanes(_laneManager.Lanes));
                     HttpContext.Session.SetString("Message", Message);
+
+                    HttpContext.Session.SetString("Player1Cards", SerializationHelper.SerializePlayerCards(Player1Cards));
+                    HttpContext.Session.SetString("Player2Cards", SerializationHelper.SerializePlayerCards(Player2Cards));
 
                     return RedirectToPage();
                 }
@@ -182,7 +183,7 @@ namespace CaravanOnline.Pages
                     if (string.IsNullOrEmpty(serializedSelectedCard))
                     {
                         Message = "Please select a card first.";
-                        return Page(); // Stay on the same page without redirecting
+                        return Page();
                     }
 
                     SelectedCardPhase2 = SerializationHelper.DeserializePlayerCards(serializedSelectedCard).FirstOrDefault();
@@ -204,17 +205,17 @@ namespace CaravanOnline.Pages
                     {
                         Player1Cards = Player1Cards.Where(c => c.Face != SelectedCardPhase2.Face || c.Suit != SelectedCardPhase2.Suit).ToList();
                         AddRandomCardIfNecessary(currentPlayer);
-                        HttpContext.Session.SetString("Player1Cards", SerializationHelper.SerializePlayerCards(Player1Cards));
                     }
                     else
                     {
                         Player2Cards = Player2Cards.Where(c => c.Face != SelectedCardPhase2.Face || c.Suit != SelectedCardPhase2.Suit).ToList();
                         AddRandomCardIfNecessary(currentPlayer);
-                        HttpContext.Session.SetString("Player2Cards", SerializationHelper.SerializePlayerCards(Player2Cards));
                     }
 
                     HttpContext.Session.Remove("SelectedCardPhase2");
 
+                    HttpContext.Session.SetString("Player1Cards", SerializationHelper.SerializePlayerCards(Player1Cards));
+                    HttpContext.Session.SetString("Player2Cards", SerializationHelper.SerializePlayerCards(Player2Cards));
                     HttpContext.Session.SetString("Lanes", SerializationHelper.SerializeLanes(_laneManager.Lanes));
                     HttpContext.Session.SetString("Message", Message);
                     HttpContext.Session.SetString("CurrentPlayer", currentPlayer == "Player 1" ? "Player 2" : "Player 1");
@@ -256,6 +257,11 @@ namespace CaravanOnline.Pages
                     Player2Cards.Add(newCard);
                 }
             }
+        }
+
+        public int GetLaneScore(int lane)
+        {
+            return _laneManager.CalculateLaneScore(lane);
         }
     }
 }

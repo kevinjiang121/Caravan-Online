@@ -11,37 +11,40 @@ namespace CaravanOnline.Services
         {
             Lanes = new List<List<Card>>
             {
-                new List<Card>(), 
-                new List<Card>(), 
-                new List<Card>(), 
-                new List<Card>(), 
-                new List<Card>(), 
-                new List<Card>()  
+                new List<Card>(),
+                new List<Card>(),
+                new List<Card>(),
+                new List<Card>(),
+                new List<Card>(),
+                new List<Card>()
             };
         }
 
         public void AddCardToLane(int lane, Card card)
         {
-            if (lane >= 1 && lane <= Lanes.Count)
+            if (lane >= 1 && lane <= 6)
             {
                 Lanes[lane - 1].Add(card);
             }
         }
 
+        public int CalculateLaneScore(int lane)
+        {
+            if (lane >= 1 && lane <= 6)
+            {
+                int score = 0;
+                foreach (var card in Lanes[lane - 1])
+                {
+                    score += card.Number;
+                }
+                return score;
+            }
+            return 0;
+        }
+
         public string EvaluateGame()
         {
-            int scorePlayer1 = 0, scorePlayer2 = 0;
-            for (int i = 0; i < 3; i++)
-            {
-                if (Lanes[i].Count < 1 || Lanes[i + 3].Count < 1) continue; 
-                var winner = CardManager.CompareCards(Lanes[i][0], Lanes[i + 3][0]);
-                if (winner == "Player 1") scorePlayer1++;
-                else if (winner == "Player 2") scorePlayer2++;
-            }
-
-            if (scorePlayer1 > scorePlayer2) return "Player 1 wins the game!";
-            else if (scorePlayer2 > scorePlayer1) return "Player 2 wins the game!";
-            else return "It's a tie!";
+            return "";
         }
     }
 }
