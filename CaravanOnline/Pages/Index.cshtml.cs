@@ -183,7 +183,7 @@ namespace CaravanOnline.Pages
                     if (string.IsNullOrEmpty(serializedSelectedCard))
                     {
                         Message = "Please select a card first.";
-                        return Page();
+                        return Page(); // Stay on the same page without redirecting
                     }
 
                     SelectedCardPhase2 = SerializationHelper.DeserializePlayerCards(serializedSelectedCard).FirstOrDefault();
@@ -220,10 +220,10 @@ namespace CaravanOnline.Pages
                     HttpContext.Session.SetString("Message", Message);
                     HttpContext.Session.SetString("CurrentPlayer", currentPlayer == "Player 1" ? "Player 2" : "Player 1");
 
-                    if (_laneManager.Lanes.All(lane => lane.Count >= 4))
+                    var gameResult = _laneManager.EvaluateGame();
+                    if (gameResult != "The game is still ongoing.")
                     {
-                        var result = _laneManager.EvaluateGame();
-                        Message = result;
+                        Message = gameResult;
                         HttpContext.Session.Clear();
                         return Page();
                     }
@@ -259,7 +259,7 @@ namespace CaravanOnline.Pages
             }
         }
 
-        public int GetLaneScore(int lane)
+        public int CalculateLaneScore(int lane)
         {
             return _laneManager.CalculateLaneScore(lane);
         }

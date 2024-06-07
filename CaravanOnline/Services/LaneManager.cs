@@ -44,7 +44,38 @@ namespace CaravanOnline.Services
 
         public string EvaluateGame()
         {
-            return "";
+            int player1Lanes = 0;
+            int player2Lanes = 0;
+
+            bool lane1InRange = IsLaneScoreInRange(1, 21, 26);
+            bool lane4InRange = IsLaneScoreInRange(4, 21, 26);
+            if (lane1InRange && !lane4InRange) player1Lanes++;
+            if (!lane1InRange && lane4InRange) player2Lanes++;
+
+            bool lane2InRange = IsLaneScoreInRange(2, 21, 26);
+            bool lane5InRange = IsLaneScoreInRange(5, 21, 26);
+            if (lane2InRange && !lane5InRange) player1Lanes++;
+            if (!lane2InRange && lane5InRange) player2Lanes++;
+
+            bool lane3InRange = IsLaneScoreInRange(3, 21, 26);
+            bool lane6InRange = IsLaneScoreInRange(6, 21, 26);
+            if (lane3InRange && !lane6InRange) player1Lanes++;
+            if (!lane3InRange && lane6InRange) player2Lanes++;
+
+            if ((lane1InRange || lane4InRange) && (lane2InRange || lane5InRange) && (lane3InRange || lane6InRange))
+            {
+                if (player1Lanes > player2Lanes) return "Player 1 wins!";
+                if (player2Lanes > player1Lanes) return "Player 2 wins!";
+                return "It's a tie!";
+            }
+
+            return "The game is still ongoing.";
+        }
+
+        private bool IsLaneScoreInRange(int lane, int min, int max)
+        {
+            int score = CalculateLaneScore(lane);
+            return score >= min && score <= max;
         }
     }
 }
