@@ -1,16 +1,26 @@
 ﻿@page
 @model IndexModel
 
+<style>
+    .highlight {
+        font-weight: bold;
+        cursor: pointer;
+    }
+    .dim {
+        opacity: 0.5;
+    }
+</style>
+
 <h2>@Model.Message</h2>
 
-<form method="post">
+<form method="post" id="card-selection-form">
     <p>Current Player: @HttpContext.Session.GetString("CurrentPlayer")</p>
     @if (HttpContext.Session.GetString("CurrentPlayer") == "Player 1" && Model.Player1Cards != null && Model.Player1Cards.Count > 0)
     {
         <p>Player 1: Select a card</p>
         @foreach (var card in Model.Player1Cards)
         {
-            <button type="submit" name="selectedCard" value="@card.Face @card.Suit">@card.Face @card.Suit</button>
+            <button type="button" onclick="highlightCards('@card.Face', '@card.Face @card.Suit')">@card.Face @card.Suit</button>
         }
     }
     else if (HttpContext.Session.GetString("CurrentPlayer") == "Player 2" && Model.Player2Cards != null && Model.Player2Cards.Count > 0)
@@ -18,9 +28,10 @@
         <p>Player 2: Select a card</p>
         @foreach (var card in Model.Player2Cards)
         {
-            <button type="submit" name="selectedCard" value="@card.Face @card.Suit">@card.Face @card.Suit</button>
+            <button type="button" onclick="highlightCards('@card.Face', '@card.Face @card.Suit')">@card.Face @card.Suit</button>
         }
     }
+    <input type="hidden" name="selectedCard" id="selectedCardInput">
 </form>
 
 <div>
@@ -38,7 +49,7 @@
                         {
                             @foreach (var card in Model.Lanes[lane - 1])
                             {
-                                <p>@card.Face @card.Suit</p>
+                                <p class="lane-card" data-lane="@lane" data-card="@card.Face @card.Suit">@card.Face @card.Suit</p>
                             }
                         }
                         else
@@ -61,7 +72,7 @@
                         {
                             @foreach (var card in Model.Lanes[lane - 1])
                             {
-                                <p>@card.Face @card.Suit</p>
+                                <p class="lane-card" data-lane="@lane" data-card="@card.Face @card.Suit">@card.Face @card.Suit</p>
                             }
                         }
                         else
@@ -74,3 +85,52 @@
         </div>
     </div>
 </div>
+
+<script>
+    let selectedCardFace = null;
+
+    function highlightCards(face, fullCard) {
+        selectedCardFace = face;
+        const selectedCardInput = document.getElementById('selectedCardInput');
+        selectedCardInput.value = fullCard;
+
+        const laneCards = document.querySelectorAll('.lane-card');
+
+        laneCards.forEach(card => {
+            if (face === 'K' || face === 'J') {
+                card.classList.add('highlight');
+                card.addEventListener('click', placeCardNextTo);
+            } else {
+                card.classList.remove('highlight');
+                card.removeEventListener('click', placeCardNextTo);
+            }
+        });
+
+        if (face !== 'K' && face !== 'J') {
+            document.getElementById('card-selection-form').submit();
+        }
+    }
+
+    function placeCardNextTo(event) {
+        if (selectedCardFace !== 'K' && selectedCardFace !== 'J') return;
+
+        const cardElement = event.target;
+        const newCardElement = document.createElement('span');
+        newCardElement.innerText = ` ${selectedCardFace}`;
+        cardElement.appendChild(newCardElement);
+
+        resetHighlights();
+    }
+
+    function resetHighlights() {
+        document.querySelectorAll('.lane-card').forEach(card => {
+            card.classList.remove('highlight');
+            card.removeEventListener('click', placeCardNextTo);
+        });
+
+        document.querySelectorAll('form button').forEach(button => {
+            button.classList.remove('dim');
+        });
+        selectedCardFace = null;
+    }
+</script>
