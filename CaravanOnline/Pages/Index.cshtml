@@ -9,6 +9,17 @@
     .dim {
         opacity: 0.5;
     }
+    .lane-card {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+    .attached-cards {
+        display: flex;
+    }
+    .attached-card {
+        margin-left: 5px;
+    }
 </style>
 
 <h2>@Model.Message</h2>
@@ -49,7 +60,17 @@
                         {
                             @foreach (var card in Model.Lanes[lane - 1])
                             {
-                                <p class="lane-card" data-lane="@lane" data-card="@card.Face @card.Suit">@card.Face @card.Suit</p>
+                                <div class="lane-card" data-lane="@lane" data-card="@card.Face @card.Suit" onclick="cardClicked('@card.Face', '@card.Suit')">
+                                    <p>@card.Face @card.Suit</p>
+                                    <div class="attached-cards">
+                                        @foreach (var attachedCard in card.AttachedCards)
+                                        {
+                                            <div class="attached-card">
+                                                <p>@attachedCard.Face @attachedCard.Suit</p>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
                             }
                         }
                         else
@@ -72,7 +93,17 @@
                         {
                             @foreach (var card in Model.Lanes[lane - 1])
                             {
-                                <p class="lane-card" data-lane="@lane" data-card="@card.Face @card.Suit">@card.Face @card.Suit</p>
+                                <div class="lane-card" data-lane="@lane" data-card="@card.Face @card.Suit" onclick="cardClicked('@card.Face', '@card.Suit')">
+                                    <p>@card.Face @card.Suit</p>
+                                    <div class="attached-cards">
+                                        @foreach (var attachedCard in card.AttachedCards)
+                                        {
+                                            <div class="attached-card">
+                                                <p>@attachedCard.Face @attachedCard.Suit</p>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
                             }
                         }
                         else
@@ -88,9 +119,11 @@
 
 <script>
     let selectedCardFace = null;
+    let selectedCardFull = null;
 
     function highlightCards(face, fullCard) {
         selectedCardFace = face;
+        selectedCardFull = fullCard;
         const selectedCardInput = document.getElementById('selectedCardInput');
         selectedCardInput.value = fullCard;
 
@@ -114,10 +147,20 @@
     function placeCardNextTo(event) {
         if (selectedCardFace !== 'K' && selectedCardFace !== 'J') return;
 
-        const cardElement = event.target;
-        const newCardElement = document.createElement('span');
-        newCardElement.innerText = ` ${selectedCardFace}`;
-        cardElement.appendChild(newCardElement);
+        const cardElement = event.target.closest('.lane-card');
+        const cardIndex = Array.from(cardElement.parentNode.children).indexOf(cardElement);
+        const cardFace = cardElement.getAttribute('data-card').split(' ')[0];
+        const cardSuit = cardElement.getAttribute('data-card').split(' ')[1];
+        const lane = cardElement.getAttribute('data-lane');
+
+        fetch('/?handler=PlaceCardNextTo', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+            },
+            body: JSON.stringify({ Card: `${cardFace} ${cardSuit}`, AttachedCard: selectedCardFull, CardIndex: cardIndex, Lane: lane })
+        });
 
         resetHighlights();
     }
@@ -132,5 +175,14 @@
             button.classList.remove('dim');
         });
         selectedCardFace = null;
+        selectedCardFull = null;
+    }
+
+    function cardClicked(face, suit) {
+        if (selectedCardFace === 'K' || selectedCardFace === 'J') {
+            // Prevent default form submission for K and J
+            event.preventDefault();
+            placeCardNextTo(event);
+        }
     }
 </script>

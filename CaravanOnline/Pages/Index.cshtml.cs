@@ -183,7 +183,7 @@ namespace CaravanOnline.Pages
                     if (string.IsNullOrEmpty(serializedSelectedCard))
                     {
                         Message = "Please select a card first.";
-                        return Page(); // Stay on the same page without redirecting
+                        return Page(); 
                     }
 
                     SelectedCardPhase2 = SerializationHelper.DeserializePlayerCards(serializedSelectedCard).FirstOrDefault();
@@ -263,5 +263,59 @@ namespace CaravanOnline.Pages
         {
             return _laneManager.CalculateLaneScore(lane);
         }
+
+        public IActionResult OnPostPlaceCardNextTo([FromBody] CardPlacementData data)
+        {
+            Console.WriteLine($"Card: {data.Card}, Attached: {data.AttachedCard}, Index: {data.CardIndex}, Lane: {data.Lane}");
+
+            var cardParts = data.Card.Split(' ');
+            if (cardParts.Length < 2)
+            {
+                return new JsonResult(new { success = false, message = "Invalid card format." });
+            }
+
+            var cardFace = cardParts[0];
+            var cardSuit = cardParts[1];
+
+            var attachedCardParts = data.AttachedCard.Split(' ');
+            if (attachedCardParts.Length < 2)
+            {
+                return new JsonResult(new { success = false, message = "Invalid attached card format." });
+            }
+
+            var attachedCardFace = attachedCardParts[0];
+            var attachedCardSuit = attachedCardParts[1];
+
+            if (data.Lane < 1 || data.Lane > _laneManager.Lanes.Count)
+            {
+                return new JsonResult(new { success = false, message = "Invalid lane number." });
+            }
+
+            var lane = _laneManager.Lanes[data.Lane - 1];
+            if (data.CardIndex < 0 || data.CardIndex >= lane.Count)
+            {
+                return new JsonResult(new { success = false, message = "Invalid card index." });
+            }
+
+            var card = lane[data.CardIndex];
+            if (card.Face == cardFace && card.Suit == cardSuit)
+            {
+                var attachedCard = new Card(attachedCardFace, attachedCardSuit);
+                card.AttachedCards.Add(attachedCard);
+
+                HttpContext.Session.SetString("Lanes", SerializationHelper.SerializeLanes(_laneManager.Lanes));
+                return new JsonResult(new { success = true });
+            }
+
+            return new JsonResult(new { success = false, message = "Card not found in specified lane and index." });
+        }
+    }
+
+    public class CardPlacementData
+    {
+        public string Card { get; set; }
+        public string AttachedCard { get; set; }
+        public int CardIndex { get; set; }
+        public int Lane { get; set; }
     }
 }

@@ -7,6 +7,7 @@ namespace CaravanOnline.Models
         public int Number { get; set; }
         public string Direction { get; set; } = "up";
         public string? Effect { get; set; } = null;
+        public List<Card> AttachedCards { get; set; } = new List<Card>(); // New attribute
 
         public Card(string face, string suit)
         {
