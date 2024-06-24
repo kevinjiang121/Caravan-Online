@@ -268,6 +268,15 @@ namespace CaravanOnline.Pages
         {
             Console.WriteLine($"Card: {data.Card}, Attached: {data.AttachedCard}, Index: {data.CardIndex}, Lane: {data.Lane}");
 
+            // Get the current lanes from the session
+            var serializedLanes = HttpContext.Session.GetString("Lanes") ?? string.Empty;
+            if (string.IsNullOrEmpty(serializedLanes))
+            {
+                return new JsonResult(new { success = false, message = "Lanes data not found." });
+            }
+
+            _laneManager.Lanes = SerializationHelper.DeserializeLanes(serializedLanes);
+
             var cardParts = data.Card.Split(' ');
             if (cardParts.Length < 2)
             {
@@ -297,13 +306,18 @@ namespace CaravanOnline.Pages
                 return new JsonResult(new { success = false, message = "Invalid card index." });
             }
 
-            var card = lane[data.CardIndex];
+            var card = lane[data.CardIndex-1];
             if (card.Face == cardFace && card.Suit == cardSuit)
             {
                 var attachedCard = new Card(attachedCardFace, attachedCardSuit);
                 card.AttachedCards.Add(attachedCard);
 
+                Console.WriteLine($"Attached {attachedCardFace} {attachedCardSuit} to {cardFace} {cardSuit} in lane {data.Lane}");
+
                 HttpContext.Session.SetString("Lanes", SerializationHelper.SerializeLanes(_laneManager.Lanes));
+                string nextPlayer = (HttpContext.Session.GetString("CurrentPlayer") ?? "Player 1") == "Player 1" ? "Player 2" : "Player 1";
+                HttpContext.Session.SetString("CurrentPlayer", nextPlayer);
+
                 return new JsonResult(new { success = true });
             }
 

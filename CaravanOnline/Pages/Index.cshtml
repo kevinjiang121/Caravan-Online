@@ -159,7 +159,13 @@
                 'Content-Type': 'application/json',
                 'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
             },
-            body: JSON.stringify({ Card: `${cardFace} ${cardSuit}`, AttachedCard: selectedCardFull, CardIndex: cardIndex, Lane: lane })
+            body: JSON.stringify({ Card: `${cardFace} ${cardSuit}`, AttachedCard: selectedCardFull, CardIndex: cardIndex, Lane: parseInt(lane) })
+        }).then(response => response.json()).then(data => {
+            if (data.success) {
+                console.log('Card attached successfully');
+            } else {
+                console.error('Error attaching card:', data.message);
+            }
         });
 
         resetHighlights();
@@ -180,7 +186,6 @@
 
     function cardClicked(face, suit) {
         if (selectedCardFace === 'K' || selectedCardFace === 'J') {
-            // Prevent default form submission for K and J
             event.preventDefault();
             placeCardNextTo(event);
         }
