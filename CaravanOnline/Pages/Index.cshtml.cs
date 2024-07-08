@@ -268,7 +268,6 @@ namespace CaravanOnline.Pages
         {
             Console.WriteLine($"Card: {data.Card}, Attached: {data.AttachedCard}, Index: {data.CardIndex}, Lane: {data.Lane}");
 
-            // Get the current lanes from the session
             var serializedLanes = HttpContext.Session.GetString("Lanes") ?? string.Empty;
             if (string.IsNullOrEmpty(serializedLanes))
             {
