@@ -183,7 +183,7 @@ namespace CaravanOnline.Pages
                     if (string.IsNullOrEmpty(serializedSelectedCard))
                     {
                         Message = "Please select a card first.";
-                        return Page(); 
+                        return Page(); // Stay on the same page without redirecting
                     }
 
                     SelectedCardPhase2 = SerializationHelper.DeserializePlayerCards(serializedSelectedCard).FirstOrDefault();
@@ -268,6 +268,7 @@ namespace CaravanOnline.Pages
         {
             Console.WriteLine($"Card: {data.Card}, Attached: {data.AttachedCard}, Index: {data.CardIndex}, Lane: {data.Lane}");
 
+            // Get the current lanes from the session
             var serializedLanes = HttpContext.Session.GetString("Lanes") ?? string.Empty;
             if (string.IsNullOrEmpty(serializedLanes))
             {
@@ -305,7 +306,7 @@ namespace CaravanOnline.Pages
                 return new JsonResult(new { success = false, message = "Invalid card index." });
             }
 
-            var card = lane[data.CardIndex-1];
+            var card = lane[data.CardIndex];
             if (card.Face == cardFace && card.Suit == cardSuit)
             {
                 var attachedCard = new Card(attachedCardFace, attachedCardSuit);
@@ -313,8 +314,12 @@ namespace CaravanOnline.Pages
 
                 Console.WriteLine($"Attached {attachedCardFace} {attachedCardSuit} to {cardFace} {cardSuit} in lane {data.Lane}");
 
+                // Serialize and save the lanes back to the session
                 HttpContext.Session.SetString("Lanes", SerializationHelper.SerializeLanes(_laneManager.Lanes));
-                string nextPlayer = (HttpContext.Session.GetString("CurrentPlayer") ?? "Player 1") == "Player 1" ? "Player 2" : "Player 1";
+
+                // Change the turn to the next player
+                string currentPlayer = HttpContext.Session.GetString("CurrentPlayer") ?? "Player 1";
+                string nextPlayer = currentPlayer == "Player 1" ? "Player 2" : "Player 1";
                 HttpContext.Session.SetString("CurrentPlayer", nextPlayer);
 
                 return new JsonResult(new { success = true });
