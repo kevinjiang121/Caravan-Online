@@ -183,7 +183,7 @@ namespace CaravanOnline.Pages
                     if (string.IsNullOrEmpty(serializedSelectedCard))
                     {
                         Message = "Please select a card first.";
-                        return Page(); // Stay on the same page without redirecting
+                        return Page();
                     }
 
                     SelectedCardPhase2 = SerializationHelper.DeserializePlayerCards(serializedSelectedCard).FirstOrDefault();
@@ -268,7 +268,6 @@ namespace CaravanOnline.Pages
         {
             Console.WriteLine($"Card: {data.Card}, Attached: {data.AttachedCard}, Index: {data.CardIndex}, Lane: {data.Lane}");
 
-            // Get the current lanes from the session
             var serializedLanes = HttpContext.Session.GetString("Lanes") ?? string.Empty;
             if (string.IsNullOrEmpty(serializedLanes))
             {
@@ -314,18 +313,25 @@ namespace CaravanOnline.Pages
 
                 Console.WriteLine($"Attached {attachedCardFace} {attachedCardSuit} to {cardFace} {cardSuit} in lane {data.Lane}");
 
-                // Serialize and save the lanes back to the session
                 HttpContext.Session.SetString("Lanes", SerializationHelper.SerializeLanes(_laneManager.Lanes));
 
-                // Change the turn to the next player
-                string currentPlayer = HttpContext.Session.GetString("CurrentPlayer") ?? "Player 1";
-                string nextPlayer = currentPlayer == "Player 1" ? "Player 2" : "Player 1";
-                HttpContext.Session.SetString("CurrentPlayer", nextPlayer);
+                SwitchPlayer();
+                Phase = 2;
+                HttpContext.Session.SetInt32("Phase", Phase);
+                Console.WriteLine("Setting Phase to 2 after attaching card.");
 
                 return new JsonResult(new { success = true });
             }
 
             return new JsonResult(new { success = false, message = "Card not found in specified lane and index." });
+        }
+
+        private void SwitchPlayer()
+        {
+            string currentPlayer = HttpContext.Session.GetString("CurrentPlayer") ?? "Player 1";
+            string nextPlayer = currentPlayer == "Player 1" ? "Player 2" : "Player 1";
+            HttpContext.Session.SetString("CurrentPlayer", nextPlayer);
+            Console.WriteLine($"Switching turn to {nextPlayer}");
         }
     }
 
