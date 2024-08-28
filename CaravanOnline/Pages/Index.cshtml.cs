@@ -218,8 +218,7 @@ namespace CaravanOnline.Pages
                     HttpContext.Session.SetString("Player2Cards", SerializationHelper.SerializePlayerCards(Player2Cards));
                     HttpContext.Session.SetString("Lanes", SerializationHelper.SerializeLanes(_laneManager.Lanes));
                     HttpContext.Session.SetString("Message", Message);
-                    HttpContext.Session.SetString("CurrentPlayer", currentPlayer == "Player 1" ? "Player 2" : "Player 1");
-
+                    SwitchPlayer();  // Ensures player is switched after placing a card
                     var gameResult = _laneManager.EvaluateGame();
                     if (gameResult != "The game is still ongoing.")
                     {
@@ -311,14 +310,11 @@ namespace CaravanOnline.Pages
                 var attachedCard = new Card(attachedCardFace, attachedCardSuit);
                 card.AttachedCards.Add(attachedCard);
 
-                Console.WriteLine($"Attached {attachedCardFace} {attachedCardSuit} to {cardFace} {cardSuit} in lane {data.Lane}");
-
                 HttpContext.Session.SetString("Lanes", SerializationHelper.SerializeLanes(_laneManager.Lanes));
 
-                SwitchPlayer();
+                SwitchPlayer(); 
                 Phase = 2;
                 HttpContext.Session.SetInt32("Phase", Phase);
-                Console.WriteLine("Setting Phase to 2 after attaching card.");
 
                 return new JsonResult(new { success = true });
             }
