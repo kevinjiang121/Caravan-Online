@@ -27,8 +27,8 @@ namespace CaravanOnline.Services
                 var attachedCards = new List<Card>();
                 if (parts.Length > 6)
                 {
-                    var attachedParts = string.Join(",", parts.Skip(5)); // Join all attached parts correctly
-                    attachedCards = DeserializeAttachedCards(attachedParts); // Use proper deserialization method for attached cards
+                    var attachedParts = string.Join(",", parts.Skip(5));
+                    attachedCards = DeserializeAttachedCards(attachedParts); 
                 }
 
                 return new Card(parts[0], parts[1])
@@ -43,7 +43,6 @@ namespace CaravanOnline.Services
 
         public static string SerializeAttachedCards(List<Card> attachedCards)
         {
-            // Serialize each attached card using a different delimiter for face and suit, e.g., "Face^Suit"
             return string.Join("|", attachedCards.Select(ac => $"{ac.Face}^{ac.Suit}"));
         }
 
