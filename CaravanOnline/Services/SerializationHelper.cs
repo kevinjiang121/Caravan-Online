@@ -9,14 +9,19 @@ namespace CaravanOnline.Services
     {
         public static string SerializeCards(List<Card> cards)
         {
-            return string.Join(";", cards.Select(c => $"{c.Face},{c.Suit},{c.Number},{c.Direction},{c.Effect ?? string.Empty},{SerializeAttachedCards(c.AttachedCards)}"));
+            string serializedCards = string.Join(";", cards.Select(c => {
+                string attachedCardsSerialized = SerializeAttachedCards(c.AttachedCards);
+                Console.WriteLine($"Serializing Card: {c.Face}, {c.Suit} with Attached: {attachedCardsSerialized}");
+                return $"{c.Face},{c.Suit},{c.Number},{c.Direction},{c.Effect ?? string.Empty},{attachedCardsSerialized}";
+            }));
+            return serializedCards;
         }
 
         public static List<Card> DeserializeCards(string serializedCards)
         {
             if (string.IsNullOrEmpty(serializedCards)) return new List<Card>();
 
-            return serializedCards.Split(';').Select(c =>
+            var deserializedCards = serializedCards.Split(';').Select(c =>
             {
                 var parts = c.Split(',');
                 if (parts.Length < 5)
@@ -27,8 +32,8 @@ namespace CaravanOnline.Services
                 var attachedCards = new List<Card>();
                 if (parts.Length > 6)
                 {
-                    var attachedParts = string.Join(",", parts.Skip(5));
-                    attachedCards = DeserializeAttachedCards(attachedParts); 
+                    var attachedCardsData = string.Join(",", parts.Skip(5));
+                    attachedCards = DeserializeAttachedCards(attachedCardsData);
                 }
 
                 return new Card(parts[0], parts[1])
@@ -39,31 +44,44 @@ namespace CaravanOnline.Services
                     AttachedCards = attachedCards
                 };
             }).ToList();
+
+            return deserializedCards;
         }
 
         public static string SerializeAttachedCards(List<Card> attachedCards)
         {
-            return string.Join("|", attachedCards.Select(ac => $"{ac.Face}^{ac.Suit}"));
+            Console.WriteLine($"Serializing Attached Cards: {attachedCards.Count}");
+            string serializedAttachedCards = string.Join("|", attachedCards.Select(ac => $"{ac.Face}^{ac.Suit}"));
+            return serializedAttachedCards;
         }
 
         public static List<Card> DeserializeAttachedCards(string serializedAttachedCards)
         {
             if (string.IsNullOrEmpty(serializedAttachedCards)) return new List<Card>();
 
-            return serializedAttachedCards.Split('|').Select(ac =>
+            var deserializedAttachedCards = serializedAttachedCards.Split('|').Select(ac =>
             {
-                var acParts = ac.Split('^'); 
+                var acParts = ac.Split('^');
                 if (acParts.Length < 2)
                 {
                     throw new InvalidOperationException($"Invalid attached card format: {ac}");
                 }
                 return new Card(acParts[0], acParts[1]);
             }).ToList();
+
+            return deserializedAttachedCards;
         }
 
         public static string SerializeLanes(List<List<Card>> lanes)
         {
-            return string.Join(";", lanes.Select(lane => string.Join(",", lane.Select(c => $"{c.Face}-{c.Suit}-{c.Number}-{c.Direction}-{c.Effect ?? string.Empty}-{SerializeAttachedCards(c.AttachedCards)}"))));
+            string serializedLanes = string.Join(";", lanes.Select(lane =>
+                string.Join(",", lane.Select(c =>
+                {
+                    string attachedCardsSerialized = SerializeAttachedCards(c.AttachedCards);
+                    Console.WriteLine($"Serializing Lane Card: {c.Face}, {c.Suit} with Attached: {attachedCardsSerialized}");
+                    return $"{c.Face}-{c.Suit}-{c.Number}-{c.Direction}-{c.Effect ?? string.Empty}-{attachedCardsSerialized}";
+                }))));
+            return serializedLanes;
         }
 
         public static List<List<Card>> DeserializeLanes(string serializedLanes)
@@ -81,13 +99,21 @@ namespace CaravanOnline.Services
                         {
                             throw new InvalidOperationException($"Invalid lane card format: {c}");
                         }
-                        return new Card(parts[0], parts[1])
+
+                        var card = new Card(parts[0], parts[1])
                         {
                             Number = int.Parse(parts[2]),
                             Direction = parts[3],
-                            Effect = parts.Length > 4 ? parts[4] : null,
-                            AttachedCards = parts.Length > 5 ? DeserializeAttachedCards(parts[5]) : new List<Card>()
+                            Effect = parts.Length > 4 ? parts[4] : null
                         };
+
+                        if (parts.Length > 5)
+                        {
+                            var attachedCardsData = string.Join("-", parts.Skip(5));
+                            card.AttachedCards = DeserializeAttachedCards(attachedCardsData);
+                        }
+
+                        return card;
                     }).ToList());
                 }
                 else
@@ -100,12 +126,14 @@ namespace CaravanOnline.Services
 
         public static string SerializePlayerCards(List<Card> playerCards)
         {
-            return SerializeCards(playerCards);
+            string serializedPlayerCards = SerializeCards(playerCards);
+            return serializedPlayerCards;
         }
 
         public static List<Card> DeserializePlayerCards(string serializedPlayerCards)
         {
-            return DeserializeCards(serializedPlayerCards);
+            var deserializedPlayerCards = DeserializeCards(serializedPlayerCards);
+            return deserializedPlayerCards;
         }
     }
 }
