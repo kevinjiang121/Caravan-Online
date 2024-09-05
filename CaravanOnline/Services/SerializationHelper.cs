@@ -9,11 +9,18 @@ namespace CaravanOnline.Services
     {
         public static string SerializeCards(List<Card> cards)
         {
-            string serializedCards = string.Join(";", cards.Select(c => {
-                string attachedCardsSerialized = SerializeAttachedCards(c.AttachedCards);
-                Console.WriteLine($"Serializing Card: {c.Face}, {c.Suit} with Attached: {attachedCardsSerialized}");
-                return $"{c.Face},{c.Suit},{c.Number},{c.Direction},{c.Effect ?? string.Empty},{attachedCardsSerialized}";
+            string serializedCards = string.Join(";", cards.Select(c =>
+            {
+                string attachedCardsSerialized = string.Empty;
+                if ((c.Face == "K" || c.Face == "J") && c.AttachedCards.Count > 0)
+                {
+                    attachedCardsSerialized = SerializeAttachedCards(c.AttachedCards);
+                    Console.WriteLine($"Serializing Card: {c.Face}, {c.Suit} with Attached: {attachedCardsSerialized}");
+                }
+                
+                return $"{c.Face},{c.Suit},{c.Number},{c.Direction},{c.Effect ?? string.Empty}" + (attachedCardsSerialized != string.Empty ? $",{attachedCardsSerialized}" : "");
             }));
+
             return serializedCards;
         }
 
@@ -30,7 +37,7 @@ namespace CaravanOnline.Services
                 }
 
                 var attachedCards = new List<Card>();
-                if (parts.Length > 6)
+                if (parts.Length > 6 && (parts[0] == "K" || parts[0] == "J"))
                 {
                     var attachedCardsData = string.Join(",", parts.Skip(5));
                     attachedCards = DeserializeAttachedCards(attachedCardsData);
@@ -77,9 +84,13 @@ namespace CaravanOnline.Services
             string serializedLanes = string.Join(";", lanes.Select(lane =>
                 string.Join(",", lane.Select(c =>
                 {
-                    string attachedCardsSerialized = SerializeAttachedCards(c.AttachedCards);
-                    Console.WriteLine($"Serializing Lane Card: {c.Face}, {c.Suit} with Attached: {attachedCardsSerialized}");
-                    return $"{c.Face}-{c.Suit}-{c.Number}-{c.Direction}-{c.Effect ?? string.Empty}-{attachedCardsSerialized}";
+                    string attachedCardsSerialized = string.Empty;
+                    if ((c.Face == "K" || c.Face == "J") && c.AttachedCards.Count > 0)
+                    {
+                        attachedCardsSerialized = SerializeAttachedCards(c.AttachedCards);
+                        Console.WriteLine($"Serializing Lane Card: {c.Face}, {c.Suit} with Attached: {attachedCardsSerialized}");
+                    }
+                    return $"{c.Face}-{c.Suit}-{c.Number}-{c.Direction}-{c.Effect ?? string.Empty}" + (attachedCardsSerialized != string.Empty ? $"-{attachedCardsSerialized}" : "");
                 }))));
             return serializedLanes;
         }
@@ -107,7 +118,7 @@ namespace CaravanOnline.Services
                             Effect = parts.Length > 4 ? parts[4] : null
                         };
 
-                        if (parts.Length > 5)
+                        if (parts.Length > 5 && (parts[0] == "K" || parts[0] == "J"))
                         {
                             var attachedCardsData = string.Join("-", parts.Skip(5));
                             card.AttachedCards = DeserializeAttachedCards(attachedCardsData);
