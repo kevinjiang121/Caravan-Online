@@ -201,6 +201,12 @@ namespace CaravanOnline.Pages
 
                     _laneManager.AddCardToLane(laneNumber, SelectedCardPhase2);
 
+                    if (SelectedCardPhase2.Face == "K" || SelectedCardPhase2.Face == "J")
+                    {
+                        var attachedCardsSerialized = SerializationHelper.SerializeAttachedCards(SelectedCardPhase2.AttachedCards);
+                        HttpContext.Session.SetString("Lanes", SerializationHelper.SerializeLanes(_laneManager.Lanes));
+                    }
+
                     if (currentPlayer == "Player 1")
                     {
                         Player1Cards = Player1Cards.Where(c => c.Face != SelectedCardPhase2.Face || c.Suit != SelectedCardPhase2.Suit).ToList();
