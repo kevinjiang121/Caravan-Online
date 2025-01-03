@@ -39,7 +39,11 @@
             <p>Player 1: Select a card</p>
             @foreach (var card in Model.Player1Cards)
             {
-                <button type="button" class="card" onclick="highlightCards('@card.Face', '@card.Face @card.Suit')">@card.Face @card.Suit</button>
+                <!-- Send face + suit to highlightCards -->
+                <button type="button" class="card"
+                        onclick="highlightCards('@card.Face', '@card.Face @card.Suit')">
+                    @card.Face @card.Suit
+                </button>
             }
         }
         else if (HttpContext.Session.GetString("CurrentPlayer") == "Player 2" && Model.Player2Cards != null && Model.Player2Cards.Count > 0)
@@ -47,7 +51,10 @@
             <p>Player 2: Select a card</p>
             @foreach (var card in Model.Player2Cards)
             {
-                <button type="button" class="card" onclick="highlightCards('@card.Face', '@card.Face @card.Suit')">@card.Face @card.Suit</button>
+                <button type="button" class="card"
+                        onclick="highlightCards('@card.Face', '@card.Face @card.Suit')">
+                    @card.Face @card.Suit
+                </button>
             }
         }
     </div>
@@ -62,7 +69,9 @@
             {
                 <div>
                     <form method="post">
-                        <button type="submit" name="selectedLane" value="@lane" style="background:none;border:none;padding:0;cursor:pointer;" @(HttpContext.Session.GetString("CurrentPlayer") == "Player 1" ? "" : "disabled")>
+                        <button type="submit" name="selectedLane" value="@lane"
+                                style="background:none;border:none;padding:0;cursor:pointer;"
+                                @(HttpContext.Session.GetString("CurrentPlayer") == "Player 1" ? "" : "disabled")>
                             <h4>Lane @lane (Score: @Model.CalculateLaneScore(@lane))</h4>
                         </button>
                         @if (Model.Lanes.Count >= lane && Model.Lanes[lane - 1] != null)
@@ -70,7 +79,13 @@
                             @foreach (var card in Model.Lanes[lane - 1])
                             {
                                 <div class="card-container">
-                                    <p class="lane-card card" data-lane="@lane" data-card="@card.Face @card.Suit" onclick="cardClicked('@card.Face', '@card.Suit')">@card.Face @card.Suit</p>
+                                    <!-- Also store full face + suit in data-card -->
+                                    <p class="lane-card card"
+                                       data-lane="@lane"
+                                       data-card="@card.Face @card.Suit"
+                                       onclick="cardClicked('@card.Face', '@card.Suit')">
+                                        @card.Face @card.Suit
+                                    </p>
                                     <div class="attached-cards">
                                         @foreach (var attachedCard in card.AttachedCards)
                                         {
@@ -93,7 +108,9 @@
             {
                 <div>
                     <form method="post">
-                        <button type="submit" name="selectedLane" value="@lane" style="background:none;border:none;padding:0;cursor:pointer;" @(HttpContext.Session.GetString("CurrentPlayer") == "Player 2" ? "" : "disabled")>
+                        <button type="submit" name="selectedLane" value="@lane"
+                                style="background:none;border:none;padding:0;cursor:pointer;"
+                                @(HttpContext.Session.GetString("CurrentPlayer") == "Player 2" ? "" : "disabled")>
                             <h4>Lane @lane (Score: @Model.CalculateLaneScore(@lane))</h4>
                         </button>
                         @if (Model.Lanes.Count >= lane && Model.Lanes[lane - 1] != null)
@@ -101,7 +118,12 @@
                             @foreach (var card in Model.Lanes[lane - 1])
                             {
                                 <div class="card-container">
-                                    <p class="lane-card card" data-lane="@lane" data-card="@card.Face @card.Suit" onclick="cardClicked('@card.Face', '@card.Suit')">@card.Face @card.Suit</p>
+                                    <p class="lane-card card"
+                                       data-lane="@lane"
+                                       data-card="@card.Face @card.Suit"
+                                       onclick="cardClicked('@card.Face', '@card.Suit')">
+                                        @card.Face @card.Suit
+                                    </p>
                                     <div class="attached-cards">
                                         @foreach (var attachedCard in card.AttachedCards)
                                         {
@@ -124,16 +146,17 @@
 
 <script>
     let selectedCardFace = null;
+    let selectedCardFull = null; // store the full "Face Suit"
 
     function highlightCards(face, fullCard) {
         selectedCardFace = face;
-        const selectedCardInput = document.getElementById('selectedCardInput');
-        selectedCardInput.value = fullCard;
+        selectedCardFull = fullCard; // e.g. "K Hearts"
+        document.getElementById('selectedCardInput').value = fullCard;
 
         const laneCards = document.querySelectorAll('.lane-card');
-
         laneCards.forEach(card => {
-            if (face === 'K' || face === 'J') {
+            // If K, Q, or J, highlight lane cards so you can attach
+            if (face === 'K' || face === 'Q' || face === 'J') {
                 card.classList.add('highlight');
                 card.addEventListener('click', placeCardNextTo);
             } else {
@@ -142,26 +165,43 @@
             }
         });
 
-        if (face !== 'K' && face !== 'J') {
+        // If it's not K/Q/J, just do a normal form submit
+        if (face !== 'K' && face !== 'Q' && face !== 'J') {
             document.getElementById('card-selection-form').submit();
         }
     }
 
     function placeCardNextTo(event) {
-        if (selectedCardFace !== 'K' && selectedCardFace !== 'J') return;
-
+        if (selectedCardFace !== 'K' && selectedCardFace !== 'Q' && selectedCardFace !== 'J') {
+            return;
+        }
         const cardElement = event.target;
-        const cardFace = cardElement.getAttribute('data-card').split(' ')[0];
+        const cardFace = cardElement.getAttribute('data-card').split(' ')[0]; // e.g. "5"
         const lane = cardElement.getAttribute('data-lane');
 
-        // Send the selected card face to the backend
+        // Instead of sending only "K", we send the entire string "K Hearts".
+        // This ensures the server sees "attachedCardParts[0] = 'K'", "attachedCardParts[1] = 'Hearts'"
         fetch('/?handler=PlaceCardNextTo', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
             },
-            body: JSON.stringify({ Card: `${cardFace} ${lane}`, AttachedCard: selectedCardFace })
+            body: JSON.stringify({
+                Card: `${cardFace} ${lane}`,
+                AttachedCard: selectedCardFull  // e.g. "K Hearts"
+            })
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (result.success) {
+                location.reload(); // reload page to see updated attached cards
+            } else {
+                alert(result.message);
+            }
+        })
+        .catch(err => {
+            console.error("Attach card error:", err);
         });
 
         resetHighlights();
@@ -172,16 +212,16 @@
             card.classList.remove('highlight');
             card.removeEventListener('click', placeCardNextTo);
         });
-
         document.querySelectorAll('form button').forEach(button => {
             button.classList.remove('dim');
         });
         selectedCardFace = null;
+        selectedCardFull = null;
     }
 
     function cardClicked(face, suit) {
-        if (selectedCardFace === 'K' || selectedCardFace === 'J') {
-            // Prevent default form submission for K and J
+        // If user clicks a lane card while holding a K/Q/J
+        if (selectedCardFace === 'K' || selectedCardFace === 'Q' || selectedCardFace === 'J') {
             event.preventDefault();
             placeCardNextTo(event);
         }
