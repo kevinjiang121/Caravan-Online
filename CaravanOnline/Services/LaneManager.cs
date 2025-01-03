@@ -1,3 +1,4 @@
+// LaneManager.cs
 using System.Collections.Generic;
 using CaravanOnline.Models;
 
@@ -62,7 +63,9 @@ namespace CaravanOnline.Services
             if (lane3InRange && !lane6InRange) player1Lanes++;
             if (!lane3InRange && lane6InRange) player2Lanes++;
 
-            if ((lane1InRange || lane4InRange) && (lane2InRange || lane5InRange) && (lane3InRange || lane6InRange))
+            if ((lane1InRange || lane4InRange) &&
+                (lane2InRange || lane5InRange) &&
+                (lane3InRange || lane6InRange))
             {
                 if (player1Lanes > player2Lanes) return "Player 1 wins!";
                 if (player2Lanes > player1Lanes) return "Player 2 wins!";

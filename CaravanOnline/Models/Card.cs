@@ -1,3 +1,7 @@
+// Card.cs
+using System;
+using System.Collections.Generic;
+
 namespace CaravanOnline.Models
 {
     public class Card
@@ -7,7 +11,7 @@ namespace CaravanOnline.Models
         public int Number { get; set; }
         public string Direction { get; set; } = "up";
         public string? Effect { get; set; } = null;
-        public List<Card> AttachedCards { get; set; } = new List<Card>(); // New attribute
+        public List<Card> AttachedCards { get; set; } = new List<Card>();
 
         public Card(string face, string suit)
         {
