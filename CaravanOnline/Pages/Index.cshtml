@@ -1,5 +1,7 @@
 ﻿@page
 @model IndexModel
+@using CaravanOnline.Services
+@using CaravanOnline.Models
 
 <style>
     .highlight {
@@ -34,26 +36,29 @@
 <form method="post" id="card-selection-form">
     <p>Current Player: @HttpContext.Session.GetString("CurrentPlayer")</p>
     <div class="player-cards">
-        @if (HttpContext.Session.GetString("CurrentPlayer") == "Player 1" && Model.Player1Cards != null && Model.Player1Cards.Count > 0)
+        @if (HttpContext.Session.GetString("CurrentPlayer") == "Player 1" 
+            && Model.Player1Cards != null && Model.Player1Cards.Count > 0)
         {
             <p>Player 1: Select a card</p>
             @foreach (var card in Model.Player1Cards)
             {
-                <!-- Send face + suit to highlightCards -->
+                var cardImagePath = CardImageHelper.GetCardImagePath(card);
                 <button type="button" class="card"
                         onclick="highlightCards('@card.Face', '@card.Face @card.Suit')">
-                    @card.Face @card.Suit
+                    <img src="@cardImagePath" alt="@card.Face @card.Suit" style="width:80px; height:auto;" />
                 </button>
             }
         }
-        else if (HttpContext.Session.GetString("CurrentPlayer") == "Player 2" && Model.Player2Cards != null && Model.Player2Cards.Count > 0)
+        else if (HttpContext.Session.GetString("CurrentPlayer") == "Player 2" 
+                 && Model.Player2Cards != null && Model.Player2Cards.Count > 0)
         {
             <p>Player 2: Select a card</p>
             @foreach (var card in Model.Player2Cards)
             {
+                var cardImagePath = CardImageHelper.GetCardImagePath(card);
                 <button type="button" class="card"
                         onclick="highlightCards('@card.Face', '@card.Face @card.Suit')">
-                    @card.Face @card.Suit
+                    <img src="@cardImagePath" alt="@card.Face @card.Suit" style="width:80px; height:auto;" />
                 </button>
             }
         }
@@ -74,22 +79,29 @@
                                 @(HttpContext.Session.GetString("CurrentPlayer") == "Player 1" ? "" : "disabled")>
                             <h4>Lane @lane (Score: @Model.CalculateLaneScore(@lane))</h4>
                         </button>
+
                         @if (Model.Lanes.Count >= lane && Model.Lanes[lane - 1] != null)
                         {
                             @foreach (var card in Model.Lanes[lane - 1])
                             {
+                                var cardImagePath = CardImageHelper.GetCardImagePath(card);
                                 <div class="card-container">
-                                    <!-- Also store full face + suit in data-card -->
                                     <p class="lane-card card"
                                        data-lane="@lane"
                                        data-card="@card.Face @card.Suit"
                                        onclick="cardClicked('@card.Face', '@card.Suit')">
-                                        @card.Face @card.Suit
+                                        <img src="@cardImagePath" alt="@card.Face @card.Suit" style="width:80px; height:auto;" />
                                     </p>
+
                                     <div class="attached-cards">
                                         @foreach (var attachedCard in card.AttachedCards)
                                         {
-                                            <p class="card">@attachedCard.Face @attachedCard.Suit</p>
+                                            var attachedImagePath = CardImageHelper.GetCardImagePath(attachedCard);
+                                            <p class="card">
+                                                <img src="@attachedImagePath"
+                                                     alt="@attachedCard.Face @attachedCard.Suit"
+                                                     style="width:60px; height:auto;" />
+                                            </p>
                                         }
                                     </div>
                                 </div>
@@ -103,6 +115,7 @@
                 </div>
             }
         </div>
+
         <div style="display: flex; justify-content: space-around;">
             @for (int lane = 4; lane <= 6; lane++)
             {
@@ -113,21 +126,29 @@
                                 @(HttpContext.Session.GetString("CurrentPlayer") == "Player 2" ? "" : "disabled")>
                             <h4>Lane @lane (Score: @Model.CalculateLaneScore(@lane))</h4>
                         </button>
+
                         @if (Model.Lanes.Count >= lane && Model.Lanes[lane - 1] != null)
                         {
                             @foreach (var card in Model.Lanes[lane - 1])
                             {
+                                var cardImagePath = CardImageHelper.GetCardImagePath(card);
                                 <div class="card-container">
                                     <p class="lane-card card"
                                        data-lane="@lane"
                                        data-card="@card.Face @card.Suit"
                                        onclick="cardClicked('@card.Face', '@card.Suit')">
-                                        @card.Face @card.Suit
+                                        <img src="@cardImagePath" alt="@card.Face @card.Suit" style="width:80px; height:auto;" />
                                     </p>
+
                                     <div class="attached-cards">
                                         @foreach (var attachedCard in card.AttachedCards)
                                         {
-                                            <p class="card">@attachedCard.Face @attachedCard.Suit</p>
+                                            var attachedImagePath = CardImageHelper.GetCardImagePath(attachedCard);
+                                            <p class="card">
+                                                <img src="@attachedImagePath"
+                                                     alt="@attachedCard.Face @attachedCard.Suit"
+                                                     style="width:60px; height:auto;" />
+                                            </p>
                                         }
                                     </div>
                                 </div>
@@ -146,16 +167,15 @@
 
 <script>
     let selectedCardFace = null;
-    let selectedCardFull = null; // store the full "Face Suit"
+    let selectedCardFull = null;
 
     function highlightCards(face, fullCard) {
         selectedCardFace = face;
-        selectedCardFull = fullCard; // e.g. "K Hearts"
+        selectedCardFull = fullCard;
         document.getElementById('selectedCardInput').value = fullCard;
 
         const laneCards = document.querySelectorAll('.lane-card');
         laneCards.forEach(card => {
-            // If K, Q, or J, highlight lane cards so you can attach
             if (face === 'K' || face === 'Q' || face === 'J') {
                 card.classList.add('highlight');
                 card.addEventListener('click', placeCardNextTo);
@@ -172,15 +192,13 @@
     }
 
     function placeCardNextTo(event) {
-        if (selectedCardFace !== 'K' && selectedCardFace !== 'Q' && selectedCardFace !== 'J') {
-            return;
-        }
-        const cardElement = event.target;
-        const cardFace = cardElement.getAttribute('data-card').split(' ')[0]; // e.g. "5"
+        if (selectedCardFace !== 'K' && selectedCardFace !== 'Q' && selectedCardFace !== 'J') return;
+
+        // Make sure we get the '.lane-card' element (in case target is the <img>)
+        const cardElement = event.target.closest('.lane-card');
+        const cardFace = cardElement.getAttribute('data-card').split(' ')[0];
         const lane = cardElement.getAttribute('data-lane');
 
-        // Instead of sending only "K", we send the entire string "K Hearts".
-        // This ensures the server sees "attachedCardParts[0] = 'K'", "attachedCardParts[1] = 'Hearts'"
         fetch('/?handler=PlaceCardNextTo', {
             method: 'POST',
             headers: {
@@ -189,15 +207,15 @@
             },
             body: JSON.stringify({
                 Card: `${cardFace} ${lane}`,
-                AttachedCard: selectedCardFull  // e.g. "K Hearts"
+                AttachedCard: selectedCardFull
             })
         })
         .then(response => response.json())
         .then(result => {
             if (result.success) {
-                location.reload(); // reload page to see updated attached cards
+                location.reload(); // Refresh the page to see the attached card
             } else {
-                alert(result.message);
+                alert(result.message || "Error attaching card.");
             }
         })
         .catch(err => {
@@ -220,7 +238,6 @@
     }
 
     function cardClicked(face, suit) {
-        // If user clicks a lane card while holding a K/Q/J
         if (selectedCardFace === 'K' || selectedCardFace === 'Q' || selectedCardFace === 'J') {
             event.preventDefault();
             placeCardNextTo(event);
