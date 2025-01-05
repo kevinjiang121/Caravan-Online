@@ -1,5 +1,5 @@
-// LaneManager.cs
 using System.Collections.Generic;
+using System.Linq;
 using CaravanOnline.Models;
 
 namespace CaravanOnline.Services
@@ -29,40 +29,65 @@ namespace CaravanOnline.Services
             }
         }
 
+        /// <summary>
+        /// Calculates the score for a lane by summing each card's "effective" value.
+        /// An attached King doubles the base card’s value (no extra face-value added).
+        /// Multiple Kings stack multiplicatively.
+        /// Jacks & Queens have no effect yet.
+        /// </summary>
         public int CalculateLaneScore(int lane)
         {
-            if (lane >= 1 && lane <= 6)
+            if (lane < 1 || lane > 6) return 0;
+
+            int score = 0;
+            foreach (var card in Lanes[lane - 1])
             {
-                int score = 0;
-                foreach (var card in Lanes[lane - 1])
-                {
-                    score += card.Number;
-                }
-                return score;
+                score += GetEffectiveValue(card);
             }
-            return 0;
+            return score;
         }
 
+        /// <summary>
+        /// Returns the card's value, multiplied by 2 for each attached King.
+        /// Ignores attached card face-values for now (Jacks, Queens, or normal cards).
+        /// </summary>
+        private int GetEffectiveValue(Card card)
+        {
+            // Count how many Kings are attached.
+            int kingCount = card.AttachedCards.Count(a => a.Face == "K");
+
+            // Multiply base card's value by 2^kingCount.
+            // Example: 10 with 2 Kings => 10 * (2^2) = 40
+            return card.Number * (int)System.Math.Pow(2, kingCount);
+        }
+
+        /// <summary>
+        /// Example: Evaluates whether lanes 1-3 vs. 4-6 are within 21-26.
+        /// </summary>
         public string EvaluateGame()
         {
             int player1Lanes = 0;
             int player2Lanes = 0;
 
+            // Compare lane 1 vs. 4
             bool lane1InRange = IsLaneScoreInRange(1, 21, 26);
             bool lane4InRange = IsLaneScoreInRange(4, 21, 26);
             if (lane1InRange && !lane4InRange) player1Lanes++;
             if (!lane1InRange && lane4InRange) player2Lanes++;
 
+            // Compare lane 2 vs. 5
             bool lane2InRange = IsLaneScoreInRange(2, 21, 26);
             bool lane5InRange = IsLaneScoreInRange(5, 21, 26);
             if (lane2InRange && !lane5InRange) player1Lanes++;
             if (!lane2InRange && lane5InRange) player2Lanes++;
 
+            // Compare lane 3 vs. 6
             bool lane3InRange = IsLaneScoreInRange(3, 21, 26);
             bool lane6InRange = IsLaneScoreInRange(6, 21, 26);
             if (lane3InRange && !lane6InRange) player1Lanes++;
             if (!lane3InRange && lane6InRange) player2Lanes++;
 
+            // If all three pairs have at least one lane in range, decide outcome
             if ((lane1InRange || lane4InRange) &&
                 (lane2InRange || lane5InRange) &&
                 (lane3InRange || lane6InRange))

@@ -33,7 +33,6 @@ namespace CaravanOnline.Pages
             {
                 Player1Cards = _cardManager.GetRandomCards(8);
                 Player2Cards = _cardManager.GetRandomCards(8);
-
                 HttpContext.Session.SetString("Player1Cards", SerializationHelper.SerializePlayerCards(Player1Cards));
                 HttpContext.Session.SetString("Player2Cards", SerializationHelper.SerializePlayerCards(Player2Cards));
                 HttpContext.Session.SetString("CurrentPlayer", "Player 1");
@@ -49,7 +48,6 @@ namespace CaravanOnline.Pages
                 CurrentLane = HttpContext.Session.GetInt32("CurrentLane").GetValueOrDefault(1);
                 Phase = HttpContext.Session.GetInt32("Phase").GetValueOrDefault(1);
                 Message = HttpContext.Session.GetString("Message") ?? "Welcome to the game!";
-                
                 var serializedLanes = HttpContext.Session.GetString("Lanes") ?? string.Empty;
                 if (!string.IsNullOrEmpty(serializedLanes))
                 {
@@ -83,39 +81,35 @@ namespace CaravanOnline.Pages
                         Message = "Invalid card selected.";
                         return Page();
                     }
-
                     var selectedCardFace = selectedCardParts[0];
                     var selectedCardSuit = selectedCardParts[1];
 
-                    Card? card = null;
+                    Card? cardToPlay = null;
                     if (currentPlayer == "Player 1")
                     {
-                        card = Player1Cards.FirstOrDefault(c => c.Face == selectedCardFace && c.Suit == selectedCardSuit);
-                        if (card != null)
+                        cardToPlay = Player1Cards.FirstOrDefault(c => c.Face == selectedCardFace && c.Suit == selectedCardSuit);
+                        if (cardToPlay == null)
                         {
-                            Player1Cards.Remove(card);
-                            AddRandomCardIfNecessary(currentPlayer);
+                            Message = "Card not found in Player 1's hand.";
+                            return Page();
                         }
+                        Player1Cards.Remove(cardToPlay);
+                        AddRandomCardIfNecessary(currentPlayer, Player1Cards);
                     }
                     else
                     {
-                        card = Player2Cards.FirstOrDefault(c => c.Face == selectedCardFace && c.Suit == selectedCardSuit);
-                        if (card != null)
+                        cardToPlay = Player2Cards.FirstOrDefault(c => c.Face == selectedCardFace && c.Suit == selectedCardSuit);
+                        if (cardToPlay == null)
                         {
-                            Player2Cards.Remove(card);
-                            AddRandomCardIfNecessary(currentPlayer);
+                            Message = "Card not found in Player 2's hand.";
+                            return Page();
                         }
+                        Player2Cards.Remove(cardToPlay);
+                        AddRandomCardIfNecessary(currentPlayer, Player2Cards);
                     }
 
-                    if (card == null)
-                    {
-                        Message = "Card not found.";
-                        return Page();
-                    }
+                    _laneManager.AddCardToLane(CurrentLane, cardToPlay);
 
-                    _laneManager.AddCardToLane(CurrentLane, card);
-
-                    // If all lanes have at least 1 card, move to Phase 2
                     if (_laneManager.Lanes.All(lane => lane.Count >= 1))
                     {
                         Phase = 2;
@@ -124,7 +118,6 @@ namespace CaravanOnline.Pages
                     }
                     else
                     {
-                        // Switch lane for next turn
                         if (currentPlayer == "Player 1")
                         {
                             if (CurrentLane == 1) CurrentLane = 4;
@@ -137,7 +130,6 @@ namespace CaravanOnline.Pages
                             else if (CurrentLane == 5) CurrentLane = 3;
                             else if (CurrentLane == 6) CurrentLane = 1;
                         }
-
                         HttpContext.Session.SetInt32("CurrentLane", CurrentLane);
                         HttpContext.Session.SetString("CurrentPlayer", currentPlayer == "Player 1" ? "Player 2" : "Player 1");
                     }
@@ -146,7 +138,6 @@ namespace CaravanOnline.Pages
                     HttpContext.Session.SetString("Message", Message);
                     HttpContext.Session.SetString("Player1Cards", SerializationHelper.SerializePlayerCards(Player1Cards));
                     HttpContext.Session.SetString("Player2Cards", SerializationHelper.SerializePlayerCards(Player2Cards));
-
                     return RedirectToPage();
                 }
             }
@@ -174,7 +165,7 @@ namespace CaravanOnline.Pages
 
                     if (SelectedCardPhase2 == null)
                     {
-                        Message = "Card not found.";
+                        Message = "Card not found in hand.";
                         return Page();
                     }
 
@@ -203,6 +194,29 @@ namespace CaravanOnline.Pages
                         return Page();
                     }
 
+                    if (currentPlayer == "Player 1")
+                    {
+                        var cardInHand = Player1Cards.FirstOrDefault(c => c.Face == SelectedCardPhase2.Face && c.Suit == SelectedCardPhase2.Suit);
+                        if (cardInHand == null)
+                        {
+                            Message = "Card no longer in Player 1's hand.";
+                            return Page();
+                        }
+                        Player1Cards.Remove(cardInHand);
+                        AddRandomCardIfNecessary(currentPlayer, Player1Cards);
+                    }
+                    else
+                    {
+                        var cardInHand = Player2Cards.FirstOrDefault(c => c.Face == SelectedCardPhase2.Face && c.Suit == SelectedCardPhase2.Suit);
+                        if (cardInHand == null)
+                        {
+                            Message = "Card no longer in Player 2's hand.";
+                            return Page();
+                        }
+                        Player2Cards.Remove(cardInHand);
+                        AddRandomCardIfNecessary(currentPlayer, Player2Cards);
+                    }
+
                     _laneManager.AddCardToLane(laneNumber, SelectedCardPhase2);
 
                     if (SelectedCardPhase2.Face is "K" or "Q" or "J")
@@ -211,23 +225,11 @@ namespace CaravanOnline.Pages
                         HttpContext.Session.SetString("Lanes", SerializationHelper.SerializeLanes(_laneManager.Lanes));
                     }
 
-                    if (currentPlayer == "Player 1")
-                    {
-                        Player1Cards.Remove(SelectedCardPhase2);
-                        AddRandomCardIfNecessary(currentPlayer);
-                    }
-                    else
-                    {
-                        Player2Cards.Remove(SelectedCardPhase2);
-                        AddRandomCardIfNecessary(currentPlayer);
-                    }
-
                     HttpContext.Session.Remove("SelectedCardPhase2");
                     HttpContext.Session.SetString("Player1Cards", SerializationHelper.SerializePlayerCards(Player1Cards));
                     HttpContext.Session.SetString("Player2Cards", SerializationHelper.SerializePlayerCards(Player2Cards));
                     HttpContext.Session.SetString("Lanes", SerializationHelper.SerializeLanes(_laneManager.Lanes));
                     HttpContext.Session.SetString("Message", Message);
-
                     SwitchPlayer();
                     var gameResult = _laneManager.EvaluateGame();
                     if (gameResult != "The game is still ongoing.")
@@ -236,7 +238,6 @@ namespace CaravanOnline.Pages
                         HttpContext.Session.Clear();
                         return Page();
                     }
-
                     return RedirectToPage();
                 }
                 else
@@ -244,28 +245,7 @@ namespace CaravanOnline.Pages
                     Message = "No card or lane selected.";
                 }
             }
-
             return Page();
-        }
-
-        private void AddRandomCardIfNecessary(string currentPlayer)
-        {
-            if (currentPlayer == "Player 1")
-            {
-                if (Player1Cards.Count < 5)
-                {
-                    var newCard = _cardManager.GetRandomCard();
-                    Player1Cards.Add(newCard);
-                }
-            }
-            else if (currentPlayer == "Player 2")
-            {
-                if (Player2Cards.Count < 5)
-                {
-                    var newCard = _cardManager.GetRandomCard();
-                    Player2Cards.Add(newCard);
-                }
-            }
         }
 
         public int CalculateLaneScore(int lane)
@@ -280,19 +260,16 @@ namespace CaravanOnline.Pages
             {
                 return new JsonResult(new { success = false, message = "Lanes data not found." });
             }
-
             _laneManager.Lanes = SerializationHelper.DeserializeLanes(serializedLanes);
 
-            // The base card on the lane, e.g. "5 1"
             var cardParts = data.Card.Split(' ');
             if (cardParts.Length < 2)
             {
                 return new JsonResult(new { success = false, message = "Invalid card format." });
             }
             var cardFace = cardParts[0];
-            var cardLaneNumber = cardParts[1];
+            var cardLaneNumberStr = cardParts[1];
 
-            // The attached card, e.g. "K Hearts"
             var attachedCardParts = data.AttachedCard.Split(' ');
             if (attachedCardParts.Length < 2)
             {
@@ -301,34 +278,67 @@ namespace CaravanOnline.Pages
             var attachedCardFace = attachedCardParts[0];
             var attachedCardSuit = attachedCardParts[1];
 
-            // Validate lane
-            if (!int.TryParse(cardLaneNumber, out int laneIndex) ||
+            if (!int.TryParse(cardLaneNumberStr, out int laneIndex) ||
                 laneIndex < 1 || laneIndex > _laneManager.Lanes.Count)
             {
                 return new JsonResult(new { success = false, message = "Invalid lane number." });
             }
-
             var lane = _laneManager.Lanes[laneIndex - 1];
+
             if (data.CardIndex < 0 || data.CardIndex >= lane.Count)
             {
                 return new JsonResult(new { success = false, message = "Invalid card index." });
             }
-
-            var card = lane[data.CardIndex];
-            if (card.Face == cardFace)
+            var cardOnLane = lane[data.CardIndex];
+            if (cardOnLane.Face != cardFace)
             {
-                var attachedCard = new Card(attachedCardFace, attachedCardSuit);
-                card.AttachedCards.Add(attachedCard);
-
-                HttpContext.Session.SetString("Lanes", SerializationHelper.SerializeLanes(_laneManager.Lanes));
-                SwitchPlayer();
-                Phase = 2;
-                HttpContext.Session.SetInt32("Phase", Phase);
-
-                return new JsonResult(new { success = true });
+                return new JsonResult(new { success = false, message = "Card not found in specified lane and index." });
             }
 
-            return new JsonResult(new { success = false, message = "Card not found in specified lane and index." });
+            var attachedCard = new Card(attachedCardFace, attachedCardSuit);
+
+            if (attachedCardFace == "J")
+            {
+                lane.Remove(cardOnLane);
+            }
+            else
+            {
+                cardOnLane.AttachedCards.Add(attachedCard);
+            }
+
+            string currentPlayer = HttpContext.Session.GetString("CurrentPlayer") ?? "Player 1";
+            var p1Serialized = HttpContext.Session.GetString("Player1Cards") ?? string.Empty;
+            var p2Serialized = HttpContext.Session.GetString("Player2Cards") ?? string.Empty;
+            var player1Hand = SerializationHelper.DeserializePlayerCards(p1Serialized);
+            var player2Hand = SerializationHelper.DeserializePlayerCards(p2Serialized);
+
+            if (currentPlayer == "Player 1")
+            {
+                var foundCard = player1Hand.FirstOrDefault(c => c.Face == attachedCardFace && c.Suit == attachedCardSuit);
+                if (foundCard != null)
+                {
+                    player1Hand.Remove(foundCard);
+                    AddRandomCardIfNecessary("Player 1", player1Hand);
+                }
+            }
+            else
+            {
+                var foundCard = player2Hand.FirstOrDefault(c => c.Face == attachedCardFace && c.Suit == attachedCardSuit);
+                if (foundCard != null)
+                {
+                    player2Hand.Remove(foundCard);
+                    AddRandomCardIfNecessary("Player 2", player2Hand);
+                }
+            }
+
+            HttpContext.Session.SetString("Player1Cards", SerializationHelper.SerializePlayerCards(player1Hand));
+            HttpContext.Session.SetString("Player2Cards", SerializationHelper.SerializePlayerCards(player2Hand));
+            HttpContext.Session.SetString("Lanes", SerializationHelper.SerializeLanes(_laneManager.Lanes));
+            SwitchPlayer();
+            Phase = 2;
+            HttpContext.Session.SetInt32("Phase", Phase);
+
+            return new JsonResult(new { success = true });
         }
 
         private void SwitchPlayer()
@@ -336,6 +346,15 @@ namespace CaravanOnline.Pages
             string currentPlayer = HttpContext.Session.GetString("CurrentPlayer") ?? "Player 1";
             string nextPlayer = currentPlayer == "Player 1" ? "Player 2" : "Player 1";
             HttpContext.Session.SetString("CurrentPlayer", nextPlayer);
+        }
+
+        private void AddRandomCardIfNecessary(string currentPlayer, List<Card> hand)
+        {
+            if (hand.Count < 5)
+            {
+                var newCard = _cardManager.GetRandomCard();
+                hand.Add(newCard);
+            }
         }
     }
 
