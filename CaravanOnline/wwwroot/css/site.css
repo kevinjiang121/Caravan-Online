@@ -1,18 +1,23 @@
+@font-face {
+  font-family: 'VanillaWhale';
+  src: url('/assets/fonts/Vanilla Whale.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+}
+
 html {
-  font-size: 14px;
+font-size: 14px;
+position: relative;
+min-height: 100%;
 }
 
 @media (min-width: 768px) {
-  html {
-    font-size: 16px;
-  }
-}
-
 html {
-  position: relative;
-  min-height: 100%;
+  font-size: 16px;
+}
 }
 
 body {
-  margin-bottom: 60px;
+margin-bottom: 60px;
+font-family: 'VanillaWhale', sans-serif;
 }
