@@ -17,7 +17,6 @@ namespace CaravanOnline.Pages
         public string Message { get; set; } = "Welcome to the game!";
         public int CurrentLane { get; set; } = 1;
         public int Phase { get; set; } = 1;
-
         public List<List<Card>> Lanes => _laneManager.Lanes;
         public Card? SelectedCardPhase2 { get; set; }
 
@@ -75,42 +74,57 @@ namespace CaravanOnline.Pages
             {
                 if (!string.IsNullOrEmpty(selectedCard))
                 {
-                    var selectedCardParts = selectedCard.Split(' ');
-                    if (selectedCardParts.Length < 2)
+                    var parts = selectedCard.Split(' ');
+                    if (parts.Length < 2)
                     {
                         Message = "Invalid card selected.";
                         return Page();
                     }
-                    var selectedCardFace = selectedCardParts[0];
-                    var selectedCardSuit = selectedCardParts[1];
+
+                    var face = parts[0];
+                    var suit = parts[1];
 
                     Card? cardToPlay = null;
                     if (currentPlayer == "Player 1")
                     {
-                        cardToPlay = Player1Cards.FirstOrDefault(c => c.Face == selectedCardFace && c.Suit == selectedCardSuit);
+                        cardToPlay = Player1Cards.FirstOrDefault(c => c.Face == face && c.Suit == suit);
                         if (cardToPlay == null)
                         {
                             Message = "Card not found in Player 1's hand.";
                             return Page();
                         }
-                        Player1Cards.Remove(cardToPlay);
-                        AddRandomCardIfNecessary(currentPlayer, Player1Cards);
                     }
                     else
                     {
-                        cardToPlay = Player2Cards.FirstOrDefault(c => c.Face == selectedCardFace && c.Suit == selectedCardSuit);
+                        cardToPlay = Player2Cards.FirstOrDefault(c => c.Face == face && c.Suit == suit);
                         if (cardToPlay == null)
                         {
                             Message = "Card not found in Player 2's hand.";
                             return Page();
                         }
-                        Player2Cards.Remove(cardToPlay);
-                        AddRandomCardIfNecessary(currentPlayer, Player2Cards);
                     }
 
-                    _laneManager.AddCardToLane(CurrentLane, cardToPlay);
+                    // Attempt to place the card
+                    bool success = _laneManager.AddCardToLane(CurrentLane, cardToPlay);
+                    if (!success)
+                    {
+                        Message = _laneManager.LastFailReason;
+                        return Page();
+                    }
 
-                    if (_laneManager.Lanes.All(lane => lane.Count >= 1))
+                    // If successful, remove card from hand and draw new
+                    if (currentPlayer == "Player 1")
+                    {
+                        Player1Cards.Remove(cardToPlay);
+                        AddRandomCardIfNecessary("Player 1", Player1Cards);
+                    }
+                    else
+                    {
+                        Player2Cards.Remove(cardToPlay);
+                        AddRandomCardIfNecessary("Player 2", Player2Cards);
+                    }
+
+                    if (_laneManager.Lanes.All(l => l.Count >= 1))
                     {
                         Phase = 2;
                         HttpContext.Session.SetInt32("Phase", Phase);
@@ -145,22 +159,22 @@ namespace CaravanOnline.Pages
             {
                 if (!string.IsNullOrEmpty(selectedCard))
                 {
-                    var selectedCardParts = selectedCard.Split(' ');
-                    if (selectedCardParts.Length < 2)
+                    var parts = selectedCard.Split(' ');
+                    if (parts.Length < 2)
                     {
                         Message = "Invalid card selected.";
                         return Page();
                     }
-                    var selectedCardFace = selectedCardParts[0];
-                    var selectedCardSuit = selectedCardParts[1];
+                    var face = parts[0];
+                    var suit = parts[1];
 
                     if (currentPlayer == "Player 1")
                     {
-                        SelectedCardPhase2 = Player1Cards.FirstOrDefault(c => c.Face == selectedCardFace && c.Suit == selectedCardSuit);
+                        SelectedCardPhase2 = Player1Cards.FirstOrDefault(c => c.Face == face && c.Suit == suit);
                     }
                     else
                     {
-                        SelectedCardPhase2 = Player2Cards.FirstOrDefault(c => c.Face == selectedCardFace && c.Suit == selectedCardSuit);
+                        SelectedCardPhase2 = Player2Cards.FirstOrDefault(c => c.Face == face && c.Suit == suit);
                     }
 
                     if (SelectedCardPhase2 == null)
@@ -194,35 +208,31 @@ namespace CaravanOnline.Pages
                         return Page();
                     }
 
+                    bool success = _laneManager.AddCardToLane(laneNumber, SelectedCardPhase2);
+                    if (!success)
+                    {
+                        Message = _laneManager.LastFailReason;
+                        return Page();
+                    }
+
+                    // If it was valid, remove from the player's hand
                     if (currentPlayer == "Player 1")
                     {
                         var cardInHand = Player1Cards.FirstOrDefault(c => c.Face == SelectedCardPhase2.Face && c.Suit == SelectedCardPhase2.Suit);
-                        if (cardInHand == null)
+                        if (cardInHand != null)
                         {
-                            Message = "Card no longer in Player 1's hand.";
-                            return Page();
+                            Player1Cards.Remove(cardInHand);
+                            AddRandomCardIfNecessary(currentPlayer, Player1Cards);
                         }
-                        Player1Cards.Remove(cardInHand);
-                        AddRandomCardIfNecessary(currentPlayer, Player1Cards);
                     }
                     else
                     {
                         var cardInHand = Player2Cards.FirstOrDefault(c => c.Face == SelectedCardPhase2.Face && c.Suit == SelectedCardPhase2.Suit);
-                        if (cardInHand == null)
+                        if (cardInHand != null)
                         {
-                            Message = "Card no longer in Player 2's hand.";
-                            return Page();
+                            Player2Cards.Remove(cardInHand);
+                            AddRandomCardIfNecessary(currentPlayer, Player2Cards);
                         }
-                        Player2Cards.Remove(cardInHand);
-                        AddRandomCardIfNecessary(currentPlayer, Player2Cards);
-                    }
-
-                    _laneManager.AddCardToLane(laneNumber, SelectedCardPhase2);
-
-                    if (SelectedCardPhase2.Face is "K" or "Q" or "J")
-                    {
-                        var attachedCardsSerialized = SerializationHelper.SerializeAttachedCards(SelectedCardPhase2.AttachedCards);
-                        HttpContext.Session.SetString("Lanes", SerializationHelper.SerializeLanes(_laneManager.Lanes));
                     }
 
                     HttpContext.Session.Remove("SelectedCardPhase2");
@@ -283,12 +293,13 @@ namespace CaravanOnline.Pages
             {
                 return new JsonResult(new { success = false, message = "Invalid lane number." });
             }
-            var lane = _laneManager.Lanes[laneIndex - 1];
 
+            var lane = _laneManager.Lanes[laneIndex - 1];
             if (data.CardIndex < 0 || data.CardIndex >= lane.Count)
             {
                 return new JsonResult(new { success = false, message = "Invalid card index." });
             }
+
             var cardOnLane = lane[data.CardIndex];
             if (cardOnLane.Face != cardFace)
             {
@@ -296,7 +307,6 @@ namespace CaravanOnline.Pages
             }
 
             var attachedCard = new Card(attachedCardFace, attachedCardSuit);
-
             if (attachedCardFace == "J")
             {
                 lane.Remove(cardOnLane);
