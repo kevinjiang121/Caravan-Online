@@ -6,18 +6,43 @@
 }
 
 html {
-font-size: 14px;
-position: relative;
-min-height: 100%;
+    font-size: 14px;
+    position: relative;
+    min-height: 100%;
 }
 
 @media (min-width: 768px) {
-html {
-  font-size: 16px;
-}
+    html {
+      font-size: 16px;
+    }
 }
 
 body {
-margin-bottom: 60px;
-font-family: 'VanillaWhale', sans-serif;
+    margin-bottom: 60px;
+    font-family: 'VanillaWhale', sans-serif;
+}
+
+.highlight {
+    border: 2px solid red;
+}
+.dim {
+    opacity: 0.5;
+}
+.card-container {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+}
+.attached-cards {
+    display: flex;
+    flex-direction: row;
+    margin-left: 10px;
+}
+.card {
+    margin-right: 5px;
+}
+.player-cards {
+    display: flex;
+    flex-direction: row;
+    margin-bottom: 20px;
 }
