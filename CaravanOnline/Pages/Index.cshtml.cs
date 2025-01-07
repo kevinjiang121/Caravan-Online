@@ -231,15 +231,35 @@ namespace CaravanOnline.Pages
 
                     if (currentPlayer == "Player 1")
                     {
-                        bool removed = Player1Cards.Remove(SelectedCardPhase2);
-                        Console.WriteLine($"Removed from P1 (Phase2)? {removed}. P1 now has {Player1Cards.Count} cards.");
-                        AddRandomCardIfNecessary("Player 1", Player1Cards);
+                        var cardToRemove = Player1Cards.FirstOrDefault(c => c.Face == SelectedCardPhase2.Face && c.Suit == SelectedCardPhase2.Suit);
+                        if (cardToRemove != null)
+                        {
+                            bool removed = Player1Cards.Remove(cardToRemove);
+                            Console.WriteLine($"Removed from P1 (Phase2)? {removed}. P1 now has {Player1Cards.Count} cards.");
+                            AddRandomCardIfNecessary("Player 1", Player1Cards);
+                        }
+                        else
+                        {
+                            Message = "Card not found in Player 1's hand.";
+                            SaveState();
+                            return Page();
+                        }
                     }
                     else
                     {
-                        bool removed = Player2Cards.Remove(SelectedCardPhase2);
-                        Console.WriteLine($"Removed from P2 (Phase2)? {removed}. P2 now has {Player2Cards.Count} cards.");
-                        AddRandomCardIfNecessary("Player 2", Player2Cards);
+                        var cardToRemove = Player2Cards.FirstOrDefault(c => c.Face == SelectedCardPhase2.Face && c.Suit == SelectedCardPhase2.Suit);
+                        if (cardToRemove != null)
+                        {
+                            bool removed = Player2Cards.Remove(cardToRemove);
+                            Console.WriteLine($"Removed from P2 (Phase2)? {removed}. P2 now has {Player2Cards.Count} cards.");
+                            AddRandomCardIfNecessary("Player 2", Player2Cards);
+                        }
+                        else
+                        {
+                            Message = "Card not found in Player 2's hand.";
+                            SaveState();
+                            return Page();
+                        }
                     }
 
                     HttpContext.Session.Remove("SelectedCardPhase2");
