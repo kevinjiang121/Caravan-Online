@@ -5,8 +5,7 @@
 
 <style>
     .highlight {
-        font-weight: bold;
-        cursor: pointer;
+        border: 2px solid red;
     }
     .dim {
         opacity: 0.5;
@@ -31,7 +30,12 @@
     }
 </style>
 
-<h2>@Model.Message</h2>
+<h2 id="userMessage">@Model.Message</h2>
+
+<div style="margin-bottom: 15px;">
+    <button type="button" onclick="activateDiscardLane()">Discard Lane</button>
+    <button type="button" onclick="activateDiscardCard()">Discard Card</button>
+</div>
 
 <form method="post" id="card-selection-form">
     <p>Current Player: @HttpContext.Session.GetString("CurrentPlayer")</p>
@@ -82,19 +86,20 @@
 
                         @if (Model.Lanes.Count >= lane && Model.Lanes[lane - 1] != null)
                         {
-                            @foreach (var card in Model.Lanes[lane - 1])
+                            @for (int index = 0; index < Model.Lanes[lane - 1].Count; index++)
                             {
-                                var cardImagePath = CardImageHelper.GetCardImagePath(card);
+                                var laneCard = Model.Lanes[lane - 1][index];
+                                var cardImagePath = CardImageHelper.GetCardImagePath(laneCard);
                                 <div class="card-container">
                                     <p class="lane-card card"
                                        data-lane="@lane"
-                                       data-card="@card.Face @card.Suit"
-                                       onclick="cardClicked('@card.Face', '@card.Suit')">
-                                        <img src="@cardImagePath" alt="@card.Face @card.Suit" style="width:80px; height:auto;" />
+                                       data-card="@laneCard.Face @laneCard.Suit"
+                                       data-index="@index"
+                                       onclick="cardClicked('@laneCard.Face', '@laneCard.Suit', @index)">
+                                        <img src="@cardImagePath" alt="@laneCard.Face @laneCard.Suit" style="width:80px; height:auto;" />
                                     </p>
-
                                     <div class="attached-cards">
-                                        @foreach (var attachedCard in card.AttachedCards)
+                                        @foreach (var attachedCard in laneCard.AttachedCards)
                                         {
                                             var attachedImagePath = CardImageHelper.GetCardImagePath(attachedCard);
                                             <p class="card">
@@ -129,19 +134,20 @@
 
                         @if (Model.Lanes.Count >= lane && Model.Lanes[lane - 1] != null)
                         {
-                            @foreach (var card in Model.Lanes[lane - 1])
+                            @for (int index = 0; index < Model.Lanes[lane - 1].Count; index++)
                             {
-                                var cardImagePath = CardImageHelper.GetCardImagePath(card);
+                                var laneCard = Model.Lanes[lane - 1][index];
+                                var cardImagePath = CardImageHelper.GetCardImagePath(laneCard);
                                 <div class="card-container">
                                     <p class="lane-card card"
                                        data-lane="@lane"
-                                       data-card="@card.Face @card.Suit"
-                                       onclick="cardClicked('@card.Face', '@card.Suit')">
-                                        <img src="@cardImagePath" alt="@card.Face @card.Suit" style="width:80px; height:auto;" />
+                                       data-card="@laneCard.Face @laneCard.Suit"
+                                       data-index="@index"
+                                       onclick="cardClicked('@laneCard.Face', '@laneCard.Suit', @index)">
+                                        <img src="@cardImagePath" alt="@laneCard.Face @laneCard.Suit" style="width:80px; height:auto;" />
                                     </p>
-
                                     <div class="attached-cards">
-                                        @foreach (var attachedCard in card.AttachedCards)
+                                        @foreach (var attachedCard in laneCard.AttachedCards)
                                         {
                                             var attachedImagePath = CardImageHelper.GetCardImagePath(attachedCard);
                                             <p class="card">
@@ -168,79 +174,161 @@
 <script>
     let selectedCardFace = null;
     let selectedCardFull = null;
+    let discardLaneMode = false;
+    let discardCardMode = false;
+
+    function setUserMessage(msg) {
+        document.getElementById('userMessage').innerText = msg;
+    }
+
+    function activateDiscardLane() {
+        discardLaneMode = true;
+        discardCardMode = false;
+        setUserMessage("Click on the lane button you want to discard.");
+    }
+
+    function activateDiscardCard() {
+        discardLaneMode = false;
+        discardCardMode = true;
+        setUserMessage("Click on a card in your HAND to discard it.");
+    }
 
     function highlightCards(face, fullCard) {
+        if (discardCardMode) {
+            discardSelectedCard(face, fullCard);
+            return;
+        }
         selectedCardFace = face;
         selectedCardFull = fullCard;
         document.getElementById('selectedCardInput').value = fullCard;
 
         const laneCards = document.querySelectorAll('.lane-card');
-        laneCards.forEach(card => {
+        laneCards.forEach(laneCard => {
             if (face === 'K' || face === 'Q' || face === 'J') {
-                card.classList.add('highlight');
-                card.addEventListener('click', placeCardNextTo);
+                laneCard.classList.add('highlight');
+                laneCard.style.border = '2px solid red'; // Visual highlight
             } else {
-                card.classList.remove('highlight');
-                card.removeEventListener('click', placeCardNextTo);
+                laneCard.classList.remove('highlight');
+                laneCard.style.border = 'none';
             }
         });
 
-        // If it's not K/Q/J, just do a normal form submit
         if (face !== 'K' && face !== 'Q' && face !== 'J') {
             document.getElementById('card-selection-form').submit();
         }
     }
 
-    function placeCardNextTo(event) {
-        if (selectedCardFace !== 'K' && selectedCardFace !== 'Q' && selectedCardFace !== 'J') return;
+    function discardSelectedCard(face, fullCard) {
+        const suit = fullCard.split(' ')[1];
+        fetch('/?handler=DiscardCardClick', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'RequestVerificationToken': getRequestVerificationToken()
+            },
+            body: JSON.stringify({ Face: face, Suit: suit })
+        })
+        .then(r => r.json())
+        .then(result => {
+            if (result.success) {
+                location.reload();
+            } else {
+                setUserMessage(result.message || "Error discarding card.");
+            }
+        })
+        .catch(err => {
+            setUserMessage("Discard card error.");
+        })
+        .finally(() => {
+            discardCardMode = false;
+        });
+    }
 
-        // Make sure we get the '.lane-card' element (in case target is the <img>)
+    document.querySelectorAll('[name="selectedLane"]').forEach(btn => {
+        btn.addEventListener('click', evt => {
+            if (discardLaneMode) {
+                evt.preventDefault();
+                const lane = evt.currentTarget.value;
+                fetch('/?handler=DiscardLaneClick', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': getRequestVerificationToken()
+                    },
+                    body: JSON.stringify({ Lane: lane })
+                })
+                .then(r => r.json())
+                .then(result => {
+                    if (result.success) {
+                        location.reload();
+                    } else {
+                        setUserMessage(result.message || "Error discarding lane.");
+                    }
+                })
+                .catch(err => {
+                    setUserMessage("Discard lane error.");
+                })
+                .finally(() => {
+                    discardLaneMode = false;
+                });
+            }
+        });
+    });
+
+    function placeCardNextTo(event, cardIndex) {
+        if (selectedCardFace !== 'K' && selectedCardFace !== 'Q' && selectedCardFace !== 'J') return;
         const cardElement = event.target.closest('.lane-card');
         const cardFace = cardElement.getAttribute('data-card').split(' ')[0];
-        const lane = cardElement.getAttribute('data-lane');
+        const cardSuit = cardElement.getAttribute('data-card').split(' ')[1];
+        const lane = parseInt(cardElement.getAttribute('data-lane'));
+        const index = cardIndex;
 
         fetch('/?handler=PlaceCardNextTo', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                'RequestVerificationToken': getRequestVerificationToken()
             },
             body: JSON.stringify({
-                Card: `${cardFace} ${lane}`,
-                AttachedCard: selectedCardFull
+                Card: `${cardFace} ${cardSuit}`,
+                AttachedCard: selectedCardFull,
+                CardIndex: index,
+                Lane: lane
             })
         })
         .then(response => response.json())
         .then(result => {
             if (result.success) {
-                location.reload(); // Refresh the page to see the attached card
+                location.reload();
             } else {
                 alert(result.message || "Error attaching card.");
             }
         })
         .catch(err => {
-            console.error("Attach card error:", err);
+            alert("Attach card error.");
         });
 
         resetHighlights();
     }
 
     function resetHighlights() {
-        document.querySelectorAll('.lane-card').forEach(card => {
-            card.classList.remove('highlight');
-            card.removeEventListener('click', placeCardNextTo);
-        });
-        document.querySelectorAll('form button').forEach(button => {
-            button.classList.remove('dim');
+        document.querySelectorAll('.lane-card').forEach(laneCard => {
+            laneCard.classList.remove('highlight');
+            laneCard.style.border = 'none'; // Remove visual highlight
         });
         selectedCardFace = null;
         selectedCardFull = null;
     }
 
-    function cardClicked(face, suit) {
+    function cardClicked(face, suit, index) {
         if (selectedCardFace === 'K' || selectedCardFace === 'Q' || selectedCardFace === 'J') {
             event.preventDefault();
-            placeCardNextTo(event);
+            placeCardNextTo(event, index);
         }
+    }
+
+    function getRequestVerificationToken() {
+        const tokenElement = document.querySelector('input[name="__RequestVerificationToken"]');
+        return tokenElement ? tokenElement.value : '';
     }
 </script>
