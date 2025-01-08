@@ -5,10 +5,14 @@ using CaravanOnline.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-
 builder.Services.AddRazorPages();
-builder.Services.AddScoped<CardManager>(); 
+
+builder.Services.AddScoped<CardManager>();
 builder.Services.AddScoped<LaneManager>();
+builder.Services.AddScoped<GameStateHelper>();
+
+builder.Services.AddHttpContextAccessor();
+
 builder.Services.AddSession(options =>
 {
     options.IdleTimeout = TimeSpan.FromMinutes(30); 
@@ -31,7 +35,7 @@ app.UseRouting();
 
 app.UseAuthorization();
 
-app.UseSession(); 
+app.UseSession();
 
 app.MapRazorPages();
 

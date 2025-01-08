@@ -1,5 +1,4 @@
-﻿// Pages/Index.cshtml.cs
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using CaravanOnline.Services;
 using CaravanOnline.Models;
@@ -13,6 +12,7 @@ namespace CaravanOnline.Pages
     {
         private readonly LaneManager _laneManager;
         private readonly CardManager _cardManager;
+        private readonly GameStateHelper _gameStateHelper;
 
         public List<Card> Player1Cards { get; set; } = new();
         public List<Card> Player2Cards { get; set; } = new();
@@ -23,42 +23,46 @@ namespace CaravanOnline.Pages
         public List<List<Card>> Lanes => _laneManager.Lanes;
         public Card? SelectedCardPhase2 { get; set; }
 
-        public IndexModel(LaneManager laneManager, CardManager cardManager)
+        public IndexModel(LaneManager laneManager, CardManager cardManager, GameStateHelper gameStateHelper)
         {
             _laneManager = laneManager;
             _cardManager = cardManager;
+            _gameStateHelper = gameStateHelper;
         }
 
         public void OnGet()
         {
             Console.WriteLine("OnGet called.");
-            if (HttpContext.Session.GetString("Initialized") != "true")
+            if (!_gameStateHelper.IsInitialized())
             {
                 Console.WriteLine("Initializing new game state...");
                 Player1Cards = _cardManager.GetRandomCards(8);
                 Player2Cards = _cardManager.GetRandomCards(8);
 
-                HttpContext.Session.SetString("Player1Cards", SerializationHelper.SerializePlayerCards(Player1Cards));
-                HttpContext.Session.SetString("Player2Cards", SerializationHelper.SerializePlayerCards(Player2Cards));
-                HttpContext.Session.SetString("CurrentPlayer", "Player 1");
-                HttpContext.Session.SetInt32("CurrentLane", CurrentLane);
-                HttpContext.Session.SetInt32("Phase", Phase);
-                HttpContext.Session.SetString("Lanes", SerializationHelper.SerializeLanes(_laneManager.Lanes));
-                HttpContext.Session.SetString("Initialized", "true");
+                _gameStateHelper.InitializeGameState(Player1Cards, Player2Cards, _laneManager.Lanes);
             }
             else
             {
                 Console.WriteLine("Loading existing game state from session...");
-                Player1Cards = SerializationHelper.DeserializePlayerCards(HttpContext.Session.GetString("Player1Cards") ?? "");
-                Player2Cards = SerializationHelper.DeserializePlayerCards(HttpContext.Session.GetString("Player2Cards") ?? "");
-                CurrentLane = HttpContext.Session.GetInt32("CurrentLane") ?? 1;
-                Phase = HttpContext.Session.GetInt32("Phase") ?? 1;
-                Message = HttpContext.Session.GetString("Message") ?? "Welcome to the game!";
 
-                var serializedLanes = HttpContext.Session.GetString("Lanes") ?? "";
-                if (!string.IsNullOrEmpty(serializedLanes))
+                List<Card> tempPlayer1Cards;
+                List<Card> tempPlayer2Cards;
+                int tempCurrentLane;
+                int tempPhase;
+                string tempMessage;
+                List<List<Card>> tempLanes;
+
+                _gameStateHelper.LoadGameState(out tempPlayer1Cards, out tempPlayer2Cards, out tempCurrentLane, out tempPhase, out tempMessage, out tempLanes);
+
+                Player1Cards = tempPlayer1Cards;
+                Player2Cards = tempPlayer2Cards;
+                CurrentLane = tempCurrentLane;
+                Phase = tempPhase;
+                Message = tempMessage;
+
+                if (tempLanes.Any())
                 {
-                    _laneManager.Lanes = SerializationHelper.DeserializeLanes(serializedLanes);
+                    _laneManager.Lanes = tempLanes;
                 }
             }
 
@@ -153,7 +157,6 @@ namespace CaravanOnline.Pages
                     }
                     else
                     {
-                        // Switch lane and player
                         CurrentLane = SwitchLane(currentPlayer, CurrentLane);
                         HttpContext.Session.SetInt32("CurrentLane", CurrentLane);
                         HttpContext.Session.SetString("CurrentPlayer", currentPlayer == "Player 1" ? "Player 2" : "Player 1");
@@ -308,9 +311,7 @@ namespace CaravanOnline.Pages
             _laneManager.DiscardLane(laneNum);
             SwitchPlayer();
 
-            HttpContext.Session.SetString("Player1Cards", SerializationHelper.SerializePlayerCards(player1Hand));
-            HttpContext.Session.SetString("Player2Cards", SerializationHelper.SerializePlayerCards(player2Hand));
-            HttpContext.Session.SetString("Lanes", SerializationHelper.SerializeLanes(_laneManager.Lanes));
+            _gameStateHelper.SaveGameState(player1Hand, player2Hand, CurrentLane, Phase, Message, _laneManager.Lanes);
             return new JsonResult(new { success = true, message = $"Discarded lane {laneNum}." });
         }
 
@@ -359,9 +360,7 @@ namespace CaravanOnline.Pages
 
             SwitchPlayer();
 
-            HttpContext.Session.SetString("Player1Cards", SerializationHelper.SerializePlayerCards(player1Hand));
-            HttpContext.Session.SetString("Player2Cards", SerializationHelper.SerializePlayerCards(player2Hand));
-            HttpContext.Session.SetString("Lanes", SerializationHelper.SerializeLanes(_laneManager.Lanes));
+            _gameStateHelper.SaveGameState(player1Hand, player2Hand, CurrentLane, Phase, Message, _laneManager.Lanes);
             return new JsonResult(new { success = true, message = $"Discarded card {data.Face} {data.Suit}." });
         }
 
@@ -441,27 +440,21 @@ namespace CaravanOnline.Pages
 
             if (attachedFace == "J")
             {
-                // Jack removes the base card from lane
                 lane.Remove(baseCard);
                 Console.WriteLine($"Jack attached. Removed base card {baseCard.Face} {baseCard.Suit} from lane {laneIndex}.");
             }
             else
             {
-                // King or Queen or other face card attaches
                 baseCard.AttachedCards.Add(cardToAttach);
                 Console.WriteLine($"Attached {cardToAttach.Face} {cardToAttach.Suit} to base card {baseCard.Face} {baseCard.Suit} in lane {laneIndex}.");
             }
 
             SwitchPlayer();
 
-            // Update the model's hand lists to reflect changes
             Player1Cards = player1Hand;
             Player2Cards = player2Hand;
 
-            // Save updated hands and lanes back to session
-            HttpContext.Session.SetString("Player1Cards", SerializationHelper.SerializePlayerCards(player1Hand));
-            HttpContext.Session.SetString("Player2Cards", SerializationHelper.SerializePlayerCards(player2Hand));
-            HttpContext.Session.SetString("Lanes", SerializationHelper.SerializeLanes(_laneManager.Lanes));
+            _gameStateHelper.SaveGameState(Player1Cards, Player2Cards, CurrentLane, Phase, Message, _laneManager.Lanes);
 
             return new JsonResult(new { success = true });
         }
@@ -476,7 +469,6 @@ namespace CaravanOnline.Pages
 
         private void AddRandomCardIfNecessary(string currentPlayer, List<Card> hand)
         {
-            // If the player's hand is below 5, draw a new card
             if (hand.Count < 5)
             {
                 try
@@ -495,7 +487,6 @@ namespace CaravanOnline.Pages
 
         private int SwitchLane(string currentPlayer, int currentLane)
         {
-            // Logic to switch to the corresponding lane
             if (currentPlayer == "Player 1")
             {
                 return currentLane switch
@@ -520,11 +511,7 @@ namespace CaravanOnline.Pages
 
         private void SaveState()
         {
-            HttpContext.Session.SetString("Player1Cards", SerializationHelper.SerializePlayerCards(Player1Cards));
-            HttpContext.Session.SetString("Player2Cards", SerializationHelper.SerializePlayerCards(Player2Cards));
-            HttpContext.Session.SetString("Lanes", SerializationHelper.SerializeLanes(_laneManager.Lanes));
-            HttpContext.Session.SetString("Message", Message);
-
+            _gameStateHelper.SaveGameState(Player1Cards, Player2Cards, CurrentLane, Phase, Message, _laneManager.Lanes);
             Console.WriteLine($"SaveState called. P1={Player1Cards.Count} cards, P2={Player2Cards.Count} cards, Lane1Count={_laneManager.Lanes[0].Count}");
         }
 
@@ -534,11 +521,10 @@ namespace CaravanOnline.Pages
         }
     }
 
-    // Supporting Data Classes
     public class CardPlacementData
     {
-        public string Card { get; set; } // "Face Suit"
-        public string AttachedCard { get; set; } // "Face Suit"
+        public string Card { get; set; }
+        public string AttachedCard { get; set; }
         public int CardIndex { get; set; }
         public int Lane { get; set; }
     }
