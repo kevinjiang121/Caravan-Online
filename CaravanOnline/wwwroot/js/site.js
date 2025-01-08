@@ -1,4 +1,6 @@
-﻿let selectedCardFace = null;
+﻿console.log("site.js loaded successfully.");
+
+let selectedCardFace = null;
 let selectedCardFull = null;
 let discardLaneMode = false;
 let discardCardMode = false;
@@ -32,7 +34,7 @@ function highlightCards(face, fullCard) {
     laneCards.forEach(laneCard => {
         if (face === 'K' || face === 'Q' || face === 'J') {
             laneCard.classList.add('highlight');
-            laneCard.style.border = '2px solid red'; // Visual highlight
+            laneCard.style.border = '2px solid red'; 
         } else {
             laneCard.classList.remove('highlight');
             laneCard.style.border = 'none';
@@ -140,13 +142,13 @@ function placeCardNextTo(event, cardIndex) {
 function resetHighlights() {
     document.querySelectorAll('.lane-card').forEach(laneCard => {
         laneCard.classList.remove('highlight');
-        laneCard.style.border = 'none'; // Remove visual highlight
+        laneCard.style.border = 'none'; 
     });
     selectedCardFace = null;
     selectedCardFull = null;
 }
 
-function cardClicked(face, suit, index) {
+function cardClicked(face, suit, index, event) {
     if (selectedCardFace === 'K' || selectedCardFace === 'Q' || selectedCardFace === 'J') {
         event.preventDefault();
         placeCardNextTo(event, index);
