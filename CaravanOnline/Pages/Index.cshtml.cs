@@ -13,6 +13,7 @@ namespace CaravanOnline.Pages
         private readonly LaneManager _laneManager;
         private readonly CardManager _cardManager;
         private readonly GameStateHelper _gameStateHelper;
+        private readonly PlayerManager _playerManager;
 
         public List<Card> Player1Cards { get; set; } = new();
         public List<Card> Player2Cards { get; set; } = new();
@@ -23,11 +24,12 @@ namespace CaravanOnline.Pages
         public List<List<Card>> Lanes => _laneManager.Lanes;
         public Card? SelectedCardPhase2 { get; set; }
 
-        public IndexModel(LaneManager laneManager, CardManager cardManager, GameStateHelper gameStateHelper)
+        public IndexModel(LaneManager laneManager, CardManager cardManager, GameStateHelper gameStateHelper, PlayerManager playerManager)
         {
             _laneManager = laneManager;
             _cardManager = cardManager;
             _gameStateHelper = gameStateHelper;
+            _playerManager = playerManager;
         }
 
         public void OnGet()
@@ -66,7 +68,8 @@ namespace CaravanOnline.Pages
                 }
             }
 
-            Console.WriteLine($"Phase={Phase}, CurrentLane={CurrentLane}, CurrentPlayer={HttpContext.Session.GetString("CurrentPlayer")}");
+            string currentPlayer = _playerManager.GetCurrentPlayer(HttpContext.Session);
+            Console.WriteLine($"Phase={Phase}, CurrentLane={CurrentLane}, CurrentPlayer={currentPlayer}");
             Console.WriteLine($"Player1Cards={Player1Cards.Count}, Player2Cards={Player2Cards.Count}");
         }
 
@@ -74,7 +77,7 @@ namespace CaravanOnline.Pages
         {
             CurrentLane = HttpContext.Session.GetInt32("CurrentLane") ?? 1;
             Phase = HttpContext.Session.GetInt32("Phase") ?? 1;
-            string currentPlayer = HttpContext.Session.GetString("CurrentPlayer") ?? "Player 1";
+            string currentPlayer = _playerManager.GetCurrentPlayer(HttpContext.Session);
 
             Player1Cards = SerializationHelper.DeserializePlayerCards(HttpContext.Session.GetString("Player1Cards") ?? "");
             Player2Cards = SerializationHelper.DeserializePlayerCards(HttpContext.Session.GetString("Player2Cards") ?? "");
@@ -124,7 +127,7 @@ namespace CaravanOnline.Pages
 
                         bool removed = Player1Cards.Remove(cardToPlay);
                         Console.WriteLine($"Removed from P1? {removed}. P1 now has {Player1Cards.Count} cards.");
-                        AddRandomCardIfNecessary("Player 1", Player1Cards);
+                        _playerManager.AddRandomCardIfNecessary("Player 1", Player1Cards);
                     }
                     else
                     {
@@ -146,7 +149,7 @@ namespace CaravanOnline.Pages
 
                         bool removed = Player2Cards.Remove(cardToPlay);
                         Console.WriteLine($"Removed from P2? {removed}. P2 now has {Player2Cards.Count} cards.");
-                        AddRandomCardIfNecessary("Player 2", Player2Cards);
+                        _playerManager.AddRandomCardIfNecessary("Player 2", Player2Cards);
                     }
 
                     if (_laneManager.Lanes.All(l => l.Count >= 1))
@@ -159,7 +162,7 @@ namespace CaravanOnline.Pages
                     {
                         CurrentLane = SwitchLane(currentPlayer, CurrentLane);
                         HttpContext.Session.SetInt32("CurrentLane", CurrentLane);
-                        HttpContext.Session.SetString("CurrentPlayer", currentPlayer == "Player 1" ? "Player 2" : "Player 1");
+                        _playerManager.SwitchPlayer(HttpContext.Session);
                     }
 
                     SaveState();
@@ -239,7 +242,7 @@ namespace CaravanOnline.Pages
                         {
                             bool removed = Player1Cards.Remove(cardToRemove);
                             Console.WriteLine($"Removed from P1 (Phase2)? {removed}. P1 now has {Player1Cards.Count} cards.");
-                            AddRandomCardIfNecessary("Player 1", Player1Cards);
+                            _playerManager.AddRandomCardIfNecessary("Player 1", Player1Cards);
                         }
                         else
                         {
@@ -255,7 +258,7 @@ namespace CaravanOnline.Pages
                         {
                             bool removed = Player2Cards.Remove(cardToRemove);
                             Console.WriteLine($"Removed from P2 (Phase2)? {removed}. P2 now has {Player2Cards.Count} cards.");
-                            AddRandomCardIfNecessary("Player 2", Player2Cards);
+                            _playerManager.AddRandomCardIfNecessary("Player 2", Player2Cards);
                         }
                         else
                         {
@@ -268,7 +271,7 @@ namespace CaravanOnline.Pages
                     HttpContext.Session.Remove("SelectedCardPhase2");
                     SaveState();
 
-                    SwitchPlayer();
+                    _playerManager.SwitchPlayer(HttpContext.Session);
                     var gameResult = _laneManager.EvaluateGame();
                     if (gameResult != "The game is still ongoing.")
                     {
@@ -309,7 +312,7 @@ namespace CaravanOnline.Pages
             }
 
             _laneManager.DiscardLane(laneNum);
-            SwitchPlayer();
+            _playerManager.SwitchPlayer(HttpContext.Session);
 
             _gameStateHelper.SaveGameState(player1Hand, player2Hand, CurrentLane, Phase, Message, _laneManager.Lanes);
             return new JsonResult(new { success = true, message = $"Discarded lane {laneNum}." });
@@ -329,7 +332,7 @@ namespace CaravanOnline.Pages
                 _laneManager.Lanes = SerializationHelper.DeserializeLanes(lanesSerialized);
             }
 
-            string currentPlayer = HttpContext.Session.GetString("CurrentPlayer") ?? "Player 1";
+            string currentPlayer = _playerManager.GetCurrentPlayer(HttpContext.Session);
             if (string.IsNullOrEmpty(data.Face) || string.IsNullOrEmpty(data.Suit))
             {
                 return new JsonResult(new { success = false, message = "Invalid card data." });
@@ -344,7 +347,7 @@ namespace CaravanOnline.Pages
                 }
                 bool removed = player1Hand.Remove(found);
                 Console.WriteLine($"Discarding from P1? {removed}. P1 now has {player1Hand.Count} cards.");
-                AddRandomCardIfNecessary("Player 1", player1Hand);
+                _playerManager.AddRandomCardIfNecessary("Player 1", player1Hand);
             }
             else
             {
@@ -355,10 +358,10 @@ namespace CaravanOnline.Pages
                 }
                 bool removed = player2Hand.Remove(found);
                 Console.WriteLine($"Discarding from P2? {removed}. P2 now has {player2Hand.Count} cards.");
-                AddRandomCardIfNecessary("Player 2", player2Hand);
+                _playerManager.AddRandomCardIfNecessary("Player 2", player2Hand);
             }
 
-            SwitchPlayer();
+            _playerManager.SwitchPlayer(HttpContext.Session);
 
             _gameStateHelper.SaveGameState(player1Hand, player2Hand, CurrentLane, Phase, Message, _laneManager.Lanes);
             return new JsonResult(new { success = true, message = $"Discarded card {data.Face} {data.Suit}." });
@@ -379,7 +382,7 @@ namespace CaravanOnline.Pages
             var player1Hand = SerializationHelper.DeserializePlayerCards(p1Serialized);
             var player2Hand = SerializationHelper.DeserializePlayerCards(p2Serialized);
 
-            string currentPlayer = HttpContext.Session.GetString("CurrentPlayer") ?? "Player 1";
+            string currentPlayer = _playerManager.GetCurrentPlayer(HttpContext.Session);
 
             var cardParts = data.Card.Split(' ');
             if (cardParts.Length < 2)
@@ -424,7 +427,7 @@ namespace CaravanOnline.Pages
                 }
                 bool removed = player1Hand.Remove(cardToAttach);
                 Console.WriteLine($"Attaching from P1? {removed}. P1 now has {player1Hand.Count} cards.");
-                AddRandomCardIfNecessary("Player 1", player1Hand);
+                _playerManager.AddRandomCardIfNecessary("Player 1", player1Hand);
             }
             else
             {
@@ -435,7 +438,7 @@ namespace CaravanOnline.Pages
                 }
                 bool removed = player2Hand.Remove(cardToAttach);
                 Console.WriteLine($"Attaching from P2? {removed}. P2 now has {player2Hand.Count} cards.");
-                AddRandomCardIfNecessary("Player 2", player2Hand);
+                _playerManager.AddRandomCardIfNecessary("Player 2", player2Hand);
             }
 
             if (attachedFace == "J")
@@ -449,7 +452,7 @@ namespace CaravanOnline.Pages
                 Console.WriteLine($"Attached {cardToAttach.Face} {cardToAttach.Suit} to base card {baseCard.Face} {baseCard.Suit} in lane {laneIndex}.");
             }
 
-            SwitchPlayer();
+            _playerManager.SwitchPlayer(HttpContext.Session);
 
             Player1Cards = player1Hand;
             Player2Cards = player2Hand;
@@ -457,32 +460,6 @@ namespace CaravanOnline.Pages
             _gameStateHelper.SaveGameState(Player1Cards, Player2Cards, CurrentLane, Phase, Message, _laneManager.Lanes);
 
             return new JsonResult(new { success = true });
-        }
-
-        private void SwitchPlayer()
-        {
-            string current = HttpContext.Session.GetString("CurrentPlayer") ?? "Player 1";
-            string next = (current == "Player 1") ? "Player 2" : "Player 1";
-            HttpContext.Session.SetString("CurrentPlayer", next);
-            Console.WriteLine($"Switched from {current} to {next}.");
-        }
-
-        private void AddRandomCardIfNecessary(string currentPlayer, List<Card> hand)
-        {
-            if (hand.Count < 5)
-            {
-                try
-                {
-                    var newCard = _cardManager.GetRandomCard();
-                    hand.Add(newCard);
-                    Console.WriteLine($"Drew new card for {currentPlayer}: {newCard.Face} {newCard.Suit}. Hand size now {hand.Count}.");
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Error drawing new card for {currentPlayer}: {ex.Message}");
-                    Message = $"Error drawing new card for {currentPlayer}.";
-                }
-            }
         }
 
         private int SwitchLane(string currentPlayer, int currentLane)
