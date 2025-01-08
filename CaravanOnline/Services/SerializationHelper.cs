@@ -21,7 +21,7 @@ namespace CaravanOnline.Services
             {
                 return new List<Card>();
             }
-            return JsonSerializer.Deserialize<List<Card>>(json);
+            return JsonSerializer.Deserialize<List<Card>>(json) ?? new List<Card>();
         }
 
         public static string SerializeAttachedCards(List<Card> attachedCards)
@@ -39,7 +39,7 @@ namespace CaravanOnline.Services
             {
                 return new List<Card>();
             }
-            return JsonSerializer.Deserialize<List<Card>>(json);
+            return JsonSerializer.Deserialize<List<Card>>(json) ?? new List<Card>();
         }
 
         public static string SerializeLanes(List<List<Card>> lanes)
@@ -57,7 +57,7 @@ namespace CaravanOnline.Services
             {
                 return new List<List<Card>>();
             }
-            return JsonSerializer.Deserialize<List<List<Card>>>(json);
+            return JsonSerializer.Deserialize<List<List<Card>>>(json) ?? new List<List<Card>>();
         }
 
         public static string SerializePlayerCards(List<Card> playerCards)

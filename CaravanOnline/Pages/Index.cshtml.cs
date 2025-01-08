@@ -291,9 +291,15 @@ namespace CaravanOnline.Pages
             return Page();
         }
 
-        [HttpPost]
+        // Removed [HttpPost] attribute
         public IActionResult OnPostDiscardLaneClick([FromBody] LaneDiscardData data)
         {
+            // Null check for data.Lane
+            if (string.IsNullOrEmpty(data.Lane))
+            {
+                return new JsonResult(new { success = false, message = "Lane data is missing." });
+            }
+
             var serializedLanes = HttpContext.Session.GetString("Lanes") ?? "";
             if (string.IsNullOrEmpty(serializedLanes))
             {
@@ -318,9 +324,15 @@ namespace CaravanOnline.Pages
             return new JsonResult(new { success = true, message = $"Discarded lane {laneNum}." });
         }
 
-        [HttpPost]
+        // Removed [HttpPost] attribute
         public IActionResult OnPostDiscardCardClick([FromBody] CardDiscardData data)
         {
+            // Null checks for data.Face and data.Suit
+            if (string.IsNullOrEmpty(data.Face) || string.IsNullOrEmpty(data.Suit))
+            {
+                return new JsonResult(new { success = false, message = "Invalid card data." });
+            }
+
             var p1Serialized = HttpContext.Session.GetString("Player1Cards") ?? "";
             var p2Serialized = HttpContext.Session.GetString("Player2Cards") ?? "";
             var player1Hand = SerializationHelper.DeserializePlayerCards(p1Serialized);
@@ -333,10 +345,6 @@ namespace CaravanOnline.Pages
             }
 
             string currentPlayer = _playerManager.GetCurrentPlayer(HttpContext.Session);
-            if (string.IsNullOrEmpty(data.Face) || string.IsNullOrEmpty(data.Suit))
-            {
-                return new JsonResult(new { success = false, message = "Invalid card data." });
-            }
 
             if (currentPlayer == "Player 1")
             {
@@ -367,9 +375,15 @@ namespace CaravanOnline.Pages
             return new JsonResult(new { success = true, message = $"Discarded card {data.Face} {data.Suit}." });
         }
 
-        [HttpPost]
+        // Removed [HttpPost] attribute
         public IActionResult OnPostPlaceCardNextTo([FromBody] CardPlacementData data)
         {
+            // Null checks for data.Card and data.AttachedCard
+            if (string.IsNullOrEmpty(data.Card) || string.IsNullOrEmpty(data.AttachedCard))
+            {
+                return new JsonResult(new { success = false, message = "Card or AttachedCard data is missing." });
+            }
+
             var lanesSerialized = HttpContext.Session.GetString("Lanes") ?? "";
             if (string.IsNullOrEmpty(lanesSerialized))
             {
@@ -500,20 +514,20 @@ namespace CaravanOnline.Pages
 
     public class CardPlacementData
     {
-        public string Card { get; set; }
-        public string AttachedCard { get; set; }
+        public string? Card { get; set; }
+        public string? AttachedCard { get; set; }
         public int CardIndex { get; set; }
         public int Lane { get; set; }
     }
 
     public class LaneDiscardData
     {
-        public string Lane { get; set; }
+        public string? Lane { get; set; }
     }
 
     public class CardDiscardData
     {
-        public string Face { get; set; }
-        public string Suit { get; set; }
+        public string? Face { get; set; }
+        public string? Suit { get; set; }
     }
 }
