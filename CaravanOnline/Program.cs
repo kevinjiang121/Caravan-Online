@@ -12,6 +12,7 @@ builder.Services.AddScoped<CardManager>();
 builder.Services.AddScoped<LaneManager>();
 builder.Services.AddScoped<GameStateHelper>();
 builder.Services.AddScoped<PlayerManager>();
+builder.Services.AddScoped<PhaseManager>();
 
 builder.Services.AddHttpContextAccessor();
 

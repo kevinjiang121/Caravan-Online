@@ -1,4 +1,3 @@
-// Services/LaneManager.cs
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -24,9 +23,6 @@ namespace CaravanOnline.Services
             };
         }
 
-        /// <summary>
-        /// Places a card onto the specified lane, respecting up/down direction rules.
-        /// </summary>
         public bool AddCardToLane(int lane, Card card)
         {
             LastFailReason = string.Empty;
@@ -39,25 +35,22 @@ namespace CaravanOnline.Services
             var laneIndex = lane - 1;
             var currentLane = Lanes[laneIndex];
 
-            // If lane empty, just place the card
             if (currentLane.Count == 0)
             {
                 currentLane.Add(card);
                 return true;
             }
 
-            // If only 1 card, set direction based on whether new card is bigger/smaller
             if (currentLane.Count == 1)
             {
                 var firstCard = currentLane[0];
                 currentLane.Add(card);
                 if (card.Number > firstCard.Number) card.Direction = "up";
                 else if (card.Number < firstCard.Number) card.Direction = "down";
-                else card.Direction = "up"; // Default to "up" on tie
+                else card.Direction = "up";
                 return true;
             }
 
-            // Lane has >= 2 cards. We look at the last card's direction
             var lastCard = currentLane.Last();
             if (lastCard.Direction == "up")
             {
@@ -79,7 +72,6 @@ namespace CaravanOnline.Services
             }
             else
             {
-                // If direction somehow not set, default to "up"
                 card.Direction = "up";
             }
 
@@ -87,9 +79,6 @@ namespace CaravanOnline.Services
             return true;
         }
 
-        /// <summary>
-        /// Clears (discards) all cards in the specified lane.
-        /// </summary>
         public void DiscardLane(int lane)
         {
             if (lane >= 1 && lane <= 6)
@@ -98,12 +87,6 @@ namespace CaravanOnline.Services
             }
         }
 
-        /// <summary>
-        /// Calculates the lane's total score. 
-        /// If a card has N Kings attached, that card’s base value is multiplied by 2^N.
-        /// Jacks remove the card from the lane entirely, so it won't appear here.
-        /// Queens or other cards attached are ignored unless you add logic for them.
-        /// </summary>
         public int CalculateLaneScore(int lane)
         {
             if (lane < 1 || lane > 6) return 0;
@@ -111,28 +94,18 @@ namespace CaravanOnline.Services
 
             foreach (var card in Lanes[lane - 1])
             {
-                // Skip cards that have been removed by Jacks
                 if (card.Face == "RemovedByJack") continue;
-
-                // Calculate the value considering attached Kings
                 int kingCount = card.AttachedCards.Count(a => a.Face == "K");
                 int cardValue = card.Number * (int)Math.Pow(2, kingCount);
-
-                // Add to total score
                 score += cardValue;
             }
             return score;
         }
 
-        /// <summary>
-        /// Evaluates the game state to determine if there's a winner or if the game is ongoing.
-        /// </summary>
         public string EvaluateGame()
         {
             int player1Lanes = 0;
             int player2Lanes = 0;
-
-            // Define lane pairings for players
             var player1LanePairs = new List<(int, int)> { (1, 4), (2, 5), (3, 6) };
 
             foreach (var pair in player1LanePairs)
@@ -146,7 +119,6 @@ namespace CaravanOnline.Services
                     player2Lanes++;
             }
 
-            // Determine the winner
             if (player1Lanes > player2Lanes)
                 return "Player 1 wins!";
             if (player2Lanes > player1Lanes)
