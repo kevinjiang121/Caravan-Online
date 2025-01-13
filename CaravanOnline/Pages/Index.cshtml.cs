@@ -29,8 +29,7 @@ namespace CaravanOnline.Pages
             CardManager cardManager,
             GameStateHelper gameStateHelper,
             PlayerManager playerManager,
-            PhaseManager phaseManager
-        )
+            PhaseManager phaseManager)
         {
             _laneManager = laneManager;
             _cardManager = cardManager;
@@ -41,17 +40,14 @@ namespace CaravanOnline.Pages
 
         public void OnGet()
         {
-            Console.WriteLine("OnGet called.");
             if (!_gameStateHelper.IsInitialized())
             {
-                Console.WriteLine("Initializing new game state...");
                 Player1Cards = _cardManager.GetRandomCards(8);
                 Player2Cards = _cardManager.GetRandomCards(8);
                 _gameStateHelper.InitializeGameState(Player1Cards, Player2Cards, _laneManager.Lanes);
             }
             else
             {
-                Console.WriteLine("Loading existing game state from session...");
                 _gameStateHelper.LoadGameState(
                     out var tempPlayer1Cards,
                     out var tempPlayer2Cards,
@@ -60,47 +56,35 @@ namespace CaravanOnline.Pages
                     out var tempMessage,
                     out var tempLanes
                 );
-
                 Player1Cards = tempPlayer1Cards;
                 Player2Cards = tempPlayer2Cards;
                 CurrentLane = tempCurrentLane;
                 Phase = tempPhase;
                 Message = tempMessage;
-
-                if (tempLanes.Any())
-                {
-                    _laneManager.Lanes = tempLanes;
-                }
+                if (tempLanes.Any()) _laneManager.Lanes = tempLanes;
             }
-
-            var currentPlayer = _playerManager.GetCurrentPlayer(HttpContext.Session);
-            Console.WriteLine($"[DEBUG] OnGet => Phase={Phase}, CurrentLane={CurrentLane}, CurrentPlayer={currentPlayer}");
         }
 
         public IActionResult OnPost(string? selectedCard = null, string? selectedLane = null)
         {
+            // Reload from session each time
             CurrentLane = HttpContext.Session.GetInt32("CurrentLane") ?? 1;
             Phase = HttpContext.Session.GetInt32("Phase") ?? 1;
             var currentPlayer = _playerManager.GetCurrentPlayer(HttpContext.Session);
 
             Player1Cards = SerializationHelper.DeserializePlayerCards(HttpContext.Session.GetString("Player1Cards") ?? "");
             Player2Cards = SerializationHelper.DeserializePlayerCards(HttpContext.Session.GetString("Player2Cards") ?? "");
+
             var lanesSerialized = HttpContext.Session.GetString("Lanes") ?? "";
             if (!string.IsNullOrEmpty(lanesSerialized))
             {
                 _laneManager.Lanes = SerializationHelper.DeserializeLanes(lanesSerialized);
             }
 
-            Console.WriteLine($"[DEBUG] OnPost => selectedCard={selectedCard}, selectedLane={selectedLane}, Phase={Phase}, CurrentLane={CurrentLane}, CurrentPlayer={currentPlayer}");
-
             if (Phase == 1)
-            {
                 return _phaseManager.HandlePhase1(this, currentPlayer, selectedCard, selectedLane);
-            }
             else if (Phase == 2)
-            {
                 return _phaseManager.HandlePhase2(this, currentPlayer, selectedCard, selectedLane);
-            }
 
             SaveState();
             return Page();
@@ -109,43 +93,39 @@ namespace CaravanOnline.Pages
         [HttpPost]
         public IActionResult OnPostDiscardLaneClick([FromBody] LaneDiscardData data)
         {
-            if (string.IsNullOrEmpty(data.Lane))
-                return new JsonResult(new { success = false, message = "Lane data is missing." });
-
-            var lanesSerialized = HttpContext.Session.GetString("Lanes") ?? "";
-            if (string.IsNullOrEmpty(lanesSerialized))
-                return new JsonResult(new { success = false, message = "Lanes data not found." });
-            _laneManager.Lanes = SerializationHelper.DeserializeLanes(lanesSerialized);
-
+            // Load lane/phase from session
+            CurrentLane = HttpContext.Session.GetInt32("CurrentLane") ?? 1;
+            Phase = HttpContext.Session.GetInt32("Phase") ?? 1;
             var p1Serialized = HttpContext.Session.GetString("Player1Cards") ?? "";
             var p2Serialized = HttpContext.Session.GetString("Player2Cards") ?? "";
             var player1Hand = SerializationHelper.DeserializePlayerCards(p1Serialized);
             var player2Hand = SerializationHelper.DeserializePlayerCards(p2Serialized);
 
-            var sessionPhase = HttpContext.Session.GetInt32("Phase") ?? 1;
-            var sessionLane = HttpContext.Session.GetInt32("CurrentLane") ?? 1;
+            var lanesSerialized = HttpContext.Session.GetString("Lanes") ?? "";
+            if (string.IsNullOrEmpty(lanesSerialized))
+                return new JsonResult(new { success = false, message = "Lanes data not found." });
 
+            _laneManager.Lanes = SerializationHelper.DeserializeLanes(lanesSerialized);
+
+            if (string.IsNullOrEmpty(data.Lane))
+                return new JsonResult(new { success = false, message = "Lane data is missing." });
             if (!int.TryParse(data.Lane, out int laneNum) || laneNum < 1 || laneNum > 6)
-            {
                 return new JsonResult(new { success = false, message = "Invalid lane number." });
-            }
-
-            Console.WriteLine($"[DEBUG] DiscardLane => Lane={laneNum}, Phase={sessionPhase}");
 
             _laneManager.DiscardLane(laneNum);
-
             _playerManager.SwitchPlayer(HttpContext.Session);
 
-            _gameStateHelper.SaveGameState(player1Hand, player2Hand, sessionLane, sessionPhase, Message, _laneManager.Lanes);
-
+            // Save the state with the same Phase/CurrentLane
+            _gameStateHelper.SaveGameState(player1Hand, player2Hand, CurrentLane, Phase, Message, _laneManager.Lanes);
             return new JsonResult(new { success = true, message = $"Discarded lane {laneNum}." });
         }
 
         [HttpPost]
         public IActionResult OnPostDiscardCardClick([FromBody] CardDiscardData data)
         {
-            if (string.IsNullOrEmpty(data.Face) || string.IsNullOrEmpty(data.Suit))
-                return new JsonResult(new { success = false, message = "Invalid card data." });
+            // Load from session
+            CurrentLane = HttpContext.Session.GetInt32("CurrentLane") ?? 1;
+            Phase = HttpContext.Session.GetInt32("Phase") ?? 1;
 
             var p1Serialized = HttpContext.Session.GetString("Player1Cards") ?? "";
             var p2Serialized = HttpContext.Session.GetString("Player2Cards") ?? "";
@@ -156,17 +136,16 @@ namespace CaravanOnline.Pages
             if (!string.IsNullOrEmpty(lanesSerialized))
                 _laneManager.Lanes = SerializationHelper.DeserializeLanes(lanesSerialized);
 
-            var currentPlayer = _playerManager.GetCurrentPlayer(HttpContext.Session);
+            if (string.IsNullOrEmpty(data.Face) || string.IsNullOrEmpty(data.Suit))
+                return new JsonResult(new { success = false, message = "Invalid card data." });
 
-            var sessionPhase = HttpContext.Session.GetInt32("Phase") ?? 1;
-            var sessionLane = HttpContext.Session.GetInt32("CurrentLane") ?? 1;
+            var currentPlayer = _playerManager.GetCurrentPlayer(HttpContext.Session);
 
             if (currentPlayer == "Player 1")
             {
                 var found = player1Hand.FirstOrDefault(c => c.Face == data.Face && c.Suit == data.Suit);
                 if (found == null)
                     return new JsonResult(new { success = false, message = "Card not found in Player 1's hand." });
-
                 player1Hand.Remove(found);
                 _playerManager.AddRandomCardIfNecessary("Player 1", player1Hand);
             }
@@ -175,43 +154,43 @@ namespace CaravanOnline.Pages
                 var found = player2Hand.FirstOrDefault(c => c.Face == data.Face && c.Suit == data.Suit);
                 if (found == null)
                     return new JsonResult(new { success = false, message = "Card not found in Player 2's hand." });
-
                 player2Hand.Remove(found);
                 _playerManager.AddRandomCardIfNecessary("Player 2", player2Hand);
             }
 
             _playerManager.SwitchPlayer(HttpContext.Session);
 
-            _gameStateHelper.SaveGameState(player1Hand, player2Hand, sessionLane, sessionPhase, Message, _laneManager.Lanes);
-
+            // Preserve the same lane/phase
+            _gameStateHelper.SaveGameState(player1Hand, player2Hand, CurrentLane, Phase, Message, _laneManager.Lanes);
             return new JsonResult(new { success = true, message = $"Discarded card {data.Face} {data.Suit}." });
         }
 
         [HttpPost]
         public IActionResult OnPostPlaceCardNextTo([FromBody] CardPlacementData data)
         {
-            if (string.IsNullOrEmpty(data.Card) || string.IsNullOrEmpty(data.AttachedCard))
-                return new JsonResult(new { success = false, message = "Card or AttachedCard data is missing." });
-
-            var lanesSerialized = HttpContext.Session.GetString("Lanes") ?? "";
-            if (string.IsNullOrEmpty(lanesSerialized))
-                return new JsonResult(new { success = false, message = "Lanes data not found." });
-            _laneManager.Lanes = SerializationHelper.DeserializeLanes(lanesSerialized);
+            // Load from session
+            CurrentLane = HttpContext.Session.GetInt32("CurrentLane") ?? 1;
+            Phase = HttpContext.Session.GetInt32("Phase") ?? 1;
 
             var p1Serialized = HttpContext.Session.GetString("Player1Cards") ?? "";
             var p2Serialized = HttpContext.Session.GetString("Player2Cards") ?? "";
             var player1Hand = SerializationHelper.DeserializePlayerCards(p1Serialized);
             var player2Hand = SerializationHelper.DeserializePlayerCards(p2Serialized);
 
-            var currentPlayer = _playerManager.GetCurrentPlayer(HttpContext.Session);
+            var lanesSerialized = HttpContext.Session.GetString("Lanes") ?? "";
+            if (string.IsNullOrEmpty(lanesSerialized))
+                return new JsonResult(new { success = false, message = "Lanes data not found." });
 
-            var sessionPhase = HttpContext.Session.GetInt32("Phase") ?? 1;
-            var sessionLane = HttpContext.Session.GetInt32("CurrentLane") ?? 1;
+            _laneManager.Lanes = SerializationHelper.DeserializeLanes(lanesSerialized);
+
+            if (string.IsNullOrEmpty(data.Card) || string.IsNullOrEmpty(data.AttachedCard))
+                return new JsonResult(new { success = false, message = "Card or AttachedCard data is missing." });
+
+            var currentPlayer = _playerManager.GetCurrentPlayer(HttpContext.Session);
 
             var cardParts = data.Card.Split(' ');
             if (cardParts.Length < 2)
                 return new JsonResult(new { success = false, message = "Invalid card format." });
-
             var baseCardFace = cardParts[0];
             var baseCardSuit = cardParts[1];
 
@@ -229,6 +208,7 @@ namespace CaravanOnline.Pages
             var attachedParts = data.AttachedCard.Split(' ');
             if (attachedParts.Length < 2)
                 return new JsonResult(new { success = false, message = "Invalid attached card format." });
+
             var attachedFace = attachedParts[0];
             var attachedSuit = attachedParts[1];
 
@@ -238,7 +218,6 @@ namespace CaravanOnline.Pages
                 cardToAttach = player1Hand.FirstOrDefault(c => c.Face == attachedFace && c.Suit == attachedSuit);
                 if (cardToAttach == null)
                     return new JsonResult(new { success = false, message = "Attached card not found in Player 1's hand." });
-
                 player1Hand.Remove(cardToAttach);
                 _playerManager.AddRandomCardIfNecessary("Player 1", player1Hand);
             }
@@ -247,7 +226,6 @@ namespace CaravanOnline.Pages
                 cardToAttach = player2Hand.FirstOrDefault(c => c.Face == attachedFace && c.Suit == attachedSuit);
                 if (cardToAttach == null)
                     return new JsonResult(new { success = false, message = "Attached card not found in Player 2's hand." });
-
                 player2Hand.Remove(cardToAttach);
                 _playerManager.AddRandomCardIfNecessary("Player 2", player2Hand);
             }
@@ -256,6 +234,14 @@ namespace CaravanOnline.Pages
             {
                 lane.Remove(baseCard);
             }
+            else if (attachedFace == "Q")
+            {
+                if (data.CardIndex != lane.Count - 1)
+                    return new JsonResult(new { success = false, message = "Queens can only attach to the last card in a lane." });
+                baseCard.AttachedCards.Add(cardToAttach);
+                if (baseCard.Direction == "up") baseCard.Direction = "down";
+                else if (baseCard.Direction == "down") baseCard.Direction = "up";
+            }
             else
             {
                 baseCard.AttachedCards.Add(cardToAttach);
@@ -263,22 +249,17 @@ namespace CaravanOnline.Pages
 
             _playerManager.SwitchPlayer(HttpContext.Session);
 
-            _gameStateHelper.SaveGameState(player1Hand, player2Hand, sessionLane, sessionPhase, Message, _laneManager.Lanes);
+            // Preserve the lane/phase
+            Player1Cards = player1Hand;
+            Player2Cards = player2Hand;
+            _gameStateHelper.SaveGameState(Player1Cards, Player2Cards, CurrentLane, Phase, Message, _laneManager.Lanes);
 
             return new JsonResult(new { success = true });
         }
 
         public void SaveState()
         {
-            Console.WriteLine("[DEBUG] SaveState called.");
-            _gameStateHelper.SaveGameState(
-                Player1Cards, 
-                Player2Cards, 
-                CurrentLane, 
-                Phase, 
-                Message, 
-                _laneManager.Lanes
-            );
+            _gameStateHelper.SaveGameState(Player1Cards, Player2Cards, CurrentLane, Phase, Message, _laneManager.Lanes);
         }
 
         public int SwitchLane(string currentPlayer, int currentLane)
