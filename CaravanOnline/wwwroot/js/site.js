@@ -32,19 +32,33 @@ function highlightCards(face, fullCard) {
 
     const laneCards = document.querySelectorAll('.lane-card');
     laneCards.forEach(laneCard => {
-        if (face === 'K' || face === 'Q' || face === 'J') {
-            laneCard.classList.add('highlight');
-            laneCard.style.border = '2px solid red'; 
-        } else {
-            laneCard.classList.remove('highlight');
-            laneCard.style.border = 'none';
-        }
+        laneCard.classList.remove('highlight');
+        laneCard.style.border = 'none';
     });
 
-    if (face !== 'K' && face !== 'Q' && face !== 'J') {
+    if (face === 'K' || face === 'J') {
+        laneCards.forEach(laneCard => {
+            laneCard.classList.add('highlight');
+            laneCard.style.border = '2px solid red';
+        });
+    }
+    else if (face === 'Q') {
+        for (let laneNum = 1; laneNum <= 6; laneNum++) {
+            const laneGroup = [...document.querySelectorAll(`.lane-card[data-lane='${laneNum}']`)];
+            if (laneGroup.length > 0) {
+                const lastCard = laneGroup.reduce((acc, curr) => {
+                    return parseInt(curr.dataset.index) > parseInt(acc.dataset.index) ? curr : acc;
+                });
+                lastCard.classList.add('highlight');
+                lastCard.style.border = '2px solid red';
+            }
+        }
+    }
+    else {
         document.getElementById('card-selection-form').submit();
     }
 }
+
 
 function discardSelectedCard(face, fullCard) {
     const suit = fullCard.split(' ')[1];
