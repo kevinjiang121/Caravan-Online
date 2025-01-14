@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using CaravanOnline.Services;
 using CaravanOnline.Models;
+using CaravanOnline.Models.DTO;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -278,24 +279,5 @@ namespace CaravanOnline.Pages
         {
             return _laneManager.CalculateLaneScore(lane);
         }
-    }
-
-    public class CardPlacementData
-    {
-        public string? Card { get; set; }
-        public string? AttachedCard { get; set; }
-        public int CardIndex { get; set; }
-        public int Lane { get; set; }
-    }
-
-    public class LaneDiscardData
-    {
-        public string? Lane { get; set; }
-    }
-
-    public class CardDiscardData
-    {
-        public string? Face { get; set; }
-        public string? Suit { get; set; }
     }
 }
