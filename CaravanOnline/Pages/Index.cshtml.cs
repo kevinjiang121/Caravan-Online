@@ -4,7 +4,6 @@ using CaravanOnline.Services;
 using CaravanOnline.Models;
 using System.Collections.Generic;
 using System.Linq;
-using System;
 
 namespace CaravanOnline.Pages
 {
@@ -67,7 +66,6 @@ namespace CaravanOnline.Pages
 
         public IActionResult OnPost(string? selectedCard = null, string? selectedLane = null)
         {
-            // Reload from session each time
             CurrentLane = HttpContext.Session.GetInt32("CurrentLane") ?? 1;
             Phase = HttpContext.Session.GetInt32("Phase") ?? 1;
             var currentPlayer = _playerManager.GetCurrentPlayer(HttpContext.Session);
@@ -93,7 +91,6 @@ namespace CaravanOnline.Pages
         [HttpPost]
         public IActionResult OnPostDiscardLaneClick([FromBody] LaneDiscardData data)
         {
-            // Load lane/phase from session
             CurrentLane = HttpContext.Session.GetInt32("CurrentLane") ?? 1;
             Phase = HttpContext.Session.GetInt32("Phase") ?? 1;
             var p1Serialized = HttpContext.Session.GetString("Player1Cards") ?? "";
@@ -114,8 +111,6 @@ namespace CaravanOnline.Pages
 
             _laneManager.DiscardLane(laneNum);
             _playerManager.SwitchPlayer(HttpContext.Session);
-
-            // Save the state with the same Phase/CurrentLane
             _gameStateHelper.SaveGameState(player1Hand, player2Hand, CurrentLane, Phase, Message, _laneManager.Lanes);
             return new JsonResult(new { success = true, message = $"Discarded lane {laneNum}." });
         }
@@ -123,7 +118,6 @@ namespace CaravanOnline.Pages
         [HttpPost]
         public IActionResult OnPostDiscardCardClick([FromBody] CardDiscardData data)
         {
-            // Load from session
             CurrentLane = HttpContext.Session.GetInt32("CurrentLane") ?? 1;
             Phase = HttpContext.Session.GetInt32("Phase") ?? 1;
 
@@ -159,8 +153,6 @@ namespace CaravanOnline.Pages
             }
 
             _playerManager.SwitchPlayer(HttpContext.Session);
-
-            // Preserve the same lane/phase
             _gameStateHelper.SaveGameState(player1Hand, player2Hand, CurrentLane, Phase, Message, _laneManager.Lanes);
             return new JsonResult(new { success = true, message = $"Discarded card {data.Face} {data.Suit}." });
         }
@@ -168,7 +160,6 @@ namespace CaravanOnline.Pages
         [HttpPost]
         public IActionResult OnPostPlaceCardNextTo([FromBody] CardPlacementData data)
         {
-            // Load from session
             CurrentLane = HttpContext.Session.GetInt32("CurrentLane") ?? 1;
             Phase = HttpContext.Session.GetInt32("Phase") ?? 1;
 
@@ -248,12 +239,9 @@ namespace CaravanOnline.Pages
             }
 
             _playerManager.SwitchPlayer(HttpContext.Session);
-
-            // Preserve the lane/phase
             Player1Cards = player1Hand;
             Player2Cards = player2Hand;
             _gameStateHelper.SaveGameState(Player1Cards, Player2Cards, CurrentLane, Phase, Message, _laneManager.Lanes);
-
             return new JsonResult(new { success = true });
         }
 
