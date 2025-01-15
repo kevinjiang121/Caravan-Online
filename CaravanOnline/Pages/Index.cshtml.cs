@@ -15,6 +15,7 @@ namespace CaravanOnline.Pages
         private readonly GameStateHelper _gameStateHelper;
         private readonly PlayerManager _playerManager;
         private readonly PhaseManager _phaseManager;
+        private readonly bool _debugMode = true;
 
         public List<Card> Player1Cards { get; set; } = new();
         public List<Card> Player2Cards { get; set; } = new();
@@ -44,6 +45,12 @@ namespace CaravanOnline.Pages
             {
                 Player1Cards = _cardManager.GetRandomCards(8);
                 Player2Cards = _cardManager.GetRandomCards(8);
+
+                if (_debugMode && Player1Cards.Any())
+                {
+                    Player1Cards[0] = new Card("Joker", "Special");
+                }
+
                 _gameStateHelper.InitializeGameState(Player1Cards, Player2Cards, _laneManager.Lanes);
             }
             else
@@ -71,8 +78,12 @@ namespace CaravanOnline.Pages
             Phase = HttpContext.Session.GetInt32("Phase") ?? 1;
             var currentPlayer = _playerManager.GetCurrentPlayer(HttpContext.Session);
 
-            Player1Cards = SerializationHelper.DeserializePlayerCards(HttpContext.Session.GetString("Player1Cards") ?? "");
-            Player2Cards = SerializationHelper.DeserializePlayerCards(HttpContext.Session.GetString("Player2Cards") ?? "");
+            Player1Cards = SerializationHelper.DeserializePlayerCards(
+                HttpContext.Session.GetString("Player1Cards") ?? ""
+            );
+            Player2Cards = SerializationHelper.DeserializePlayerCards(
+                HttpContext.Session.GetString("Player2Cards") ?? ""
+            );
 
             var lanesSerialized = HttpContext.Session.GetString("Lanes") ?? "";
             if (!string.IsNullOrEmpty(lanesSerialized))
@@ -81,9 +92,13 @@ namespace CaravanOnline.Pages
             }
 
             if (Phase == 1)
+            {
                 return _phaseManager.HandlePhase1(this, currentPlayer, selectedCard, selectedLane);
+            }
             else if (Phase == 2)
+            {
                 return _phaseManager.HandlePhase2(this, currentPlayer, selectedCard, selectedLane);
+            }
 
             SaveState();
             return Page();
@@ -94,6 +109,7 @@ namespace CaravanOnline.Pages
         {
             CurrentLane = HttpContext.Session.GetInt32("CurrentLane") ?? 1;
             Phase = HttpContext.Session.GetInt32("Phase") ?? 1;
+
             var p1Serialized = HttpContext.Session.GetString("Player1Cards") ?? "";
             var p2Serialized = HttpContext.Session.GetString("Player2Cards") ?? "";
             var player1Hand = SerializationHelper.DeserializePlayerCards(p1Serialized);
@@ -102,7 +118,6 @@ namespace CaravanOnline.Pages
             var lanesSerialized = HttpContext.Session.GetString("Lanes") ?? "";
             if (string.IsNullOrEmpty(lanesSerialized))
                 return new JsonResult(new { success = false, message = "Lanes data not found." });
-
             _laneManager.Lanes = SerializationHelper.DeserializeLanes(lanesSerialized);
 
             if (string.IsNullOrEmpty(data.Lane))
@@ -172,7 +187,6 @@ namespace CaravanOnline.Pages
             var lanesSerialized = HttpContext.Session.GetString("Lanes") ?? "";
             if (string.IsNullOrEmpty(lanesSerialized))
                 return new JsonResult(new { success = false, message = "Lanes data not found." });
-
             _laneManager.Lanes = SerializationHelper.DeserializeLanes(lanesSerialized);
 
             if (string.IsNullOrEmpty(data.Card) || string.IsNullOrEmpty(data.AttachedCard))
@@ -233,6 +247,10 @@ namespace CaravanOnline.Pages
                 baseCard.AttachedCards.Add(cardToAttach);
                 if (baseCard.Direction == "up") baseCard.Direction = "down";
                 else if (baseCard.Direction == "down") baseCard.Direction = "up";
+            }
+            else if (attachedFace == "Joker")
+            {
+                baseCard.AttachedCards.Add(cardToAttach);
             }
             else
             {

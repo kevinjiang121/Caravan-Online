@@ -36,7 +36,7 @@ function highlightCards(face, fullCard) {
         laneCard.style.border = 'none';
     });
 
-    if (face === 'K' || face === 'J') {
+    if (face === 'K' || face === 'J' || face === 'Joker') {
         laneCards.forEach(laneCard => {
             laneCard.classList.add('highlight');
             laneCard.style.border = '2px solid red';
@@ -58,7 +58,6 @@ function highlightCards(face, fullCard) {
         document.getElementById('card-selection-form').submit();
     }
 }
-
 
 function discardSelectedCard(face, fullCard) {
     const suit = fullCard.split(' ')[1];
@@ -118,7 +117,9 @@ document.querySelectorAll('[name="selectedLane"]').forEach(btn => {
 });
 
 function placeCardNextTo(event, cardIndex) {
-    if (selectedCardFace !== 'K' && selectedCardFace !== 'Q' && selectedCardFace !== 'J') return;
+    if (selectedCardFace !== 'K' && selectedCardFace !== 'Q'
+        && selectedCardFace !== 'J' && selectedCardFace !== 'Joker') return;
+
     const cardElement = event.target.closest('.lane-card');
     const cardFace = cardElement.getAttribute('data-card').split(' ')[0];
     const cardSuit = cardElement.getAttribute('data-card').split(' ')[1];
@@ -163,7 +164,8 @@ function resetHighlights() {
 }
 
 function cardClicked(face, suit, index, event) {
-    if (selectedCardFace === 'K' || selectedCardFace === 'Q' || selectedCardFace === 'J') {
+    if (selectedCardFace === 'K' || selectedCardFace === 'Q'
+        || selectedCardFace === 'J' || selectedCardFace === 'Joker') {
         event.preventDefault();
         placeCardNextTo(event, index);
     }

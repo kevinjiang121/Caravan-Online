@@ -1,4 +1,3 @@
-// Card.cs
 using System;
 using System.Collections.Generic;
 
@@ -37,6 +36,7 @@ namespace CaravanOnline.Models
                 "J" => 11,
                 "Q" => 12,
                 "K" => 13,
+                "Joker" => 14, 
                 _ => throw new ArgumentException("Invalid card face", nameof(face)),
             };
         }

@@ -14,10 +14,17 @@ namespace CaravanOnline.Services
                 "Q" => ("queen", "2"),
                 "J" => ("jack", "2"),
                 "A" => ("ace", ""),
+                "Joker" => ("red_joker", ""),
                 _   => (card.Face, "")
             };
 
             var fileName = $"{faceName}_of_{suitName}{suffix}.png";
+
+            if (card.Face == "Joker")
+            {
+                fileName = "red_joker.png";
+            }
+
             return $"/assets/cards/{fileName}";
         }
     }
